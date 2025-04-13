@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --light-bg: #f8f9fa;
+            --dark-text: #2c3e50;
+            --light-text: #ecf0f1;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .app-card {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            transition: var(--transition);
+            margin: 2rem auto;
+            padding: 2.5rem;
+        }
+
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .app-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .app-title:after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 4px;
+            background: var(--primary-color);
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .app-subtitle {
+            color: #7f8c8d;
+            font-weight: 400;
+            margin-bottom: 0;
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            min-height: 120px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .nav-btn i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .nav-btn:hover i {
+            transform: scale(1.1);
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, var(--success-color), #27ae60);
+        }
+
+        .btn-list {
+            background: linear-gradient(135deg, var(--primary-color), #2980b9);
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, var(--accent-color), #c0392b);
+        }
+
+        .btn-reports {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .btn-text {
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+
+        .alert-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            background-color: white;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .app-card {
+                padding: 1.5rem;
+            }
+            
+            .app-title {
+                font-size: 2rem;
+            }
+            
+            .nav-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-container fade-in">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle me-2"></i>
+                            {% elif category == 'danger' %}
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Content -->
+        <div class="app-card fade-in">
+            <div class="app-header">
+                <h1 class="app-title">Employee Management</h1>
+                <p class="app-subtitle">Manage your workforce efficiently</p>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="{{ url_for('register_employee') }}" class="nav-btn btn-register" id="registerBtn">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="btn-text">Register Employee</span>
+                    <span class="btn-desc">Add new employees to the system</span>
+                </a>
+
+                <a href="{{ url_for('employee_list') }}" class="nav-btn btn-list" id="listBtn">
+                    <i class="fas fa-users"></i>
+                    <span class="btn-text">Employee List</span>
+                    <span class="btn-desc">View and manage all employees</span>
+                </a>
+
+                <a href="{{ url_for('search_profile') }}" class="nav-btn btn-search" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                    <span class="btn-text">Search Profile</span>
+                    <span class="btn-desc">Find specific employee records</span>
+                </a>
+
+                <a href="#" class="nav-btn btn-reports" id="reportsBtn">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="btn-text">Reports</span>
+                    <span class="btn-desc">Generate workforce analytics</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer fade-in" style="animation-delay: 0.3s">
+        <div class="container">
+            <p>&copy; 2023 Employee Management System | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+            <p class="mb-0">v2.1.0 | Powered by Flask</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Ripple effect for buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Add animation class to buttons with delay
+        document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+            btn.style.animationDelay = `${0.3 + index * 0.1}s`;
+        });
+
+        // Tooltip initialization
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Reports button functionality (placeholder)
+        document.getElementById('reportsBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            // Show coming soon message
+            alert('Reports feature coming soon!');
+        });
+    </script>
+</body>
+</html>

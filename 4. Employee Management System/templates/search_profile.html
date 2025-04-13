@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --light-bg: #f8f9fa;
+            --dark-text: #2c3e50;
+            --border-radius: 8px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-text);
+        }
+
+        .search-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .search-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .search-title {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--secondary-color);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .search-title:after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 4px;
+            background: var(--primary-color);
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .search-form {
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+        }
+
+        .search-filter {
+            margin-bottom: 1.5rem;
+        }
+
+        .search-filter label {
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .search-btn {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .search-btn:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .reset-btn:hover {
+            background-color: #1a252f;
+            border-color: #1a252f;
+            transform: translateY(-2px);
+        }
+
+        .results-container {
+            margin-top: 2rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-count {
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--primary-color);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+
+        .employee-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .employee-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-right: 1.5rem;
+        }
+
+        .employee-details {
+            flex: 1;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .employee-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .employee-meta-item {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .employee-meta-item strong {
+            color: var(--secondary-color);
+        }
+
+        .employee-status {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50rem;
+            margin-right: 0.5rem;
+        }
+
+        .status-active {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--success-color);
+        }
+
+        .status-inactive {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--accent-color);
+        }
+
+        .status-on-leave {
+            background-color: rgba(241, 196, 15, 0.2);
+            color: #f39c12;
+        }
+
+        .badge-retired {
+            background-color: rgba(149, 165, 166, 0.2);
+            color: #7f8c8d;
+        }
+
+        .view-btn {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .view-btn:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            color: #adb5bd;
+            margin-bottom: 1rem;
+        }
+
+        .no-results-text {
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+
+        .advanced-search-toggle {
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .advanced-search-toggle i {
+            margin-right: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .advanced-search-toggle.collapsed i {
+            transform: rotate(0deg);
+        }
+
+        .advanced-search-toggle:not(.collapsed) i {
+            transform: rotate(180deg);
+        }
+
+        .advanced-search-fields {
+            padding: 1rem;
+            background-color: #f1f3f5;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+
+        .main-menu-btn {
+            margin-top: 1rem;
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-menu-btn:hover {
+            background-color: #1a252f;
+            border-color: #1a252f;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .search-container {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            
+            .employee-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .employee-photo {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+            
+            .employee-meta {
+                justify-content: center;
+            }
+            
+            .employee-actions {
+                margin-top: 1rem;
+                width: 100%;
+            }
+            
+            .view-btn {
+                width: 100%;
+            }
+
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+
+        /* Animation for search results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .employee-card {
+            animation: fadeIn 0.4s ease-out forwards;
+            animation-delay: calc(var(--animation-order) * 0.1s);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <div class="search-header">
+            <h1 class="search-title">Employee Search</h1>
+            <p>Find employees by name, ID, department, or other criteria</p>
+            <a href="{{ url_for('main_menu') }}" class="main-menu-btn">
+                <i class="fas fa-home me-2"></i> Return to Main Menu
+            </a>
+        </div>
+
+        <form action="{{ url_for('search_profile') }}" method="post" class="search-form">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="search-filter">
+                        <label for="search_query" class="form-label">Search Query</label>
+                        <input type="text" class="form-control" id="search_query" name="name" 
+                               value="{{ request.form.name if request.form.name }}" 
+                               placeholder="Search by name, ID, or department">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="search-filter">
+                        <label for="search_field" class="form-label">Search Field</label>
+                        <select class="form-select" id="search_field" name="search_field">
+                            <option value="all" {{ 'selected' if not request.form.search_field or request.form.search_field == 'all' }}>All Fields</option>
+                            <option value="name" {{ 'selected' if request.form.search_field == 'name' }}>Name Only</option>
+                            <option value="id" {{ 'selected' if request.form.search_field == 'id' }}>Employee ID</option>
+                            <option value="department" {{ 'selected' if request.form.search_field == 'department' }}>Department</option>
+                            <option value="company" {{ 'selected' if request.form.search_field == 'company' }}>Company</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <a class="advanced-search-toggle collapsed" data-bs-toggle="collapse" href="#advancedSearch" role="button">
+                <i class="fas fa-chevron-down"></i> Advanced Search Options
+            </a>
+
+            <div class="collapse" id="advancedSearch">
+                <div class="advanced-search-fields">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="search-filter">
+                                <label for="employment_type" class="form-label">Employment Type</label>
+                                <select class="form-select" id="employment_type" name="employment_type">
+                                    <option value="">All Types</option>
+                                    <option value="Full-time" {{ 'selected' if request.form.employment_type == 'Full-time' }}>Full-time</option>
+                                    <option value="Part-time" {{ 'selected' if request.form.employment_type == 'Part-time' }}>Part-time</option>
+                                    <option value="Contract" {{ 'selected' if request.form.employment_type == 'Contract' }}>Contract</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="search-filter">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option value="Active" {{ 'selected' if request.form.status == 'Active' }}>Active</option>
+                                    <option value="Inactive" {{ 'selected' if request.form.status == 'Inactive' }}>Inactive</option>
+                                    <option value="On Leave" {{ 'selected' if request.form.status == 'On Leave' }}>On Leave</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="search-filter">
+                                <label for="retired" class="form-label">Retired</label>
+                                <select class="form-select" id="retired" name="retired">
+                                    <option value="">All</option>
+                                    <option value="No" {{ 'selected' if request.form.retired == 'No' }}>Not Retired</option>
+                                    <option value="Yes" {{ 'selected' if request.form.retired == 'Yes' }}>Retired</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search me-2"></i> Search Employees
+                </button>
+                <a href="{{ url_for('search_profile') }}" class="reset-btn">
+                    <i class="fas fa-undo me-2"></i> Reset Filters
+                </a>
+            </div>
+        </form>
+
+        {% if results is not none %}
+        <div class="results-container">
+            <div class="results-header">
+                <div class="results-count">
+                    {% if results|length == 0 %}
+                        No results found
+                    {% else %}
+                        {{ results|length }} employee{% if results|length != 1 %}s{% endif %} found
+                    {% endif %}
+                </div>
+                {% if results|length > 0 %}
+                <div class="results-sort">
+                    <div class="input-group">
+                        <label class="input-group-text" for="sort_by">Sort by:</label>
+                        <select class="form-select" id="sort_by" onchange="sortResults(this.value)">
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="id_asc">ID (Ascending)</option>
+                            <option value="id_desc">ID (Descending)</option>
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if results|length > 0 %}
+                {% for employee in results %}
+                <div class="employee-card" style="--animation-order: {{ loop.index }};">
+                    {% if employee.PhotoPath %}
+                    <img src="{{ url_for('static', filename=employee.PhotoPath) }}" 
+                         class="employee-photo" 
+                         alt="{{ employee.DisplayName }}"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-profile.jpg') }}'">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile.jpg') }}" 
+                         class="employee-photo" 
+                         alt="Default profile">
+                    {% endif %}
+                    
+                    <div class="employee-details">
+                        <h3 class="employee-name">{{ employee.DisplayName }}</h3>
+                        <div class="employee-meta">
+                            <div class="employee-meta-item"><strong>ID:</strong> {{ employee.EmployeeId }}</div>
+                            <div class="employee-meta-item"><strong>Department:</strong> {{ employee.Designation }}</div>
+                            <div class="employee-meta-item"><strong>Company:</strong> {{ employee.Company }}</div>
+                        </div>
+                        <div>
+                            <span class="employee-status status-{{ 'active' if employee.Status == 'Active' else 'inactive' if employee.Status == 'Inactive' else 'on-leave' }}">
+                                <i class="fas fa-circle me-1"></i> {{ employee.Status }}
+                            </span>
+                            {% if employee.Retired == 'Yes' %}
+                            <span class="employee-status badge-retired">
+                                <i class="fas fa-user-slash me-1"></i> Retired
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="employee-actions">
+                        <a href="{{ url_for('view_profile', employee_id=employee['EmployeeId']) }}" class="view-btn">
+                            <i class="fas fa-user-circle me-1"></i> View Profile
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('main_menu') }}" class="main-menu-btn">
+                        <i class="fas fa-home me-2"></i> Return to Main Menu
+                    </a>
+                </div>
+            {% else %}
+                <div class="no-results">
+                    <div class="no-results-icon">
+                        <i class="fas fa-user-slash"></i>
+                    </div>
+                    <h4 class="no-results-text">No employees match your search criteria</h4>
+                    <p>Try adjusting your search filters or search for a different term</p>
+                    <div class="mt-3">
+                        <a href="{{ url_for('main_menu') }}" class="main-menu-btn">
+                            <i class="fas fa-home me-2"></i> Return to Main Menu
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sort results (client-side)
+        function sortResults(sortValue) {
+            const container = document.querySelector('.results-container');
+            const cards = Array.from(document.querySelectorAll('.employee-card'));
+            
+            cards.sort((a, b) => {
+                const nameA = a.querySelector('.employee-name').textContent.toLowerCase();
+                const nameB = b.querySelector('.employee-name').textContent.toLowerCase();
+                const idA = a.querySelector('.employee-meta-item:first-child').textContent.split(':')[1].trim();
+                const idB = b.querySelector('.employee-meta-item:first-child').textContent.split(':')[1].trim();
+                
+                switch(sortValue) {
+                    case 'name_asc': return nameA.localeCompare(nameB);
+                    case 'name_desc': return nameB.localeCompare(nameA);
+                    case 'id_asc': return idA.localeCompare(idB);
+                    case 'id_desc': return idB.localeCompare(idA);
+                    default: return 0;
+                }
+            });
+            
+            // Re-append sorted cards
+            cards.forEach((card, index) => {
+                card.style.setProperty('--animation-order', index);
+                container.appendChild(card);
+            });
+        }
+        
+        // Persist form values after submission
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial sort value if present in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sort_by');
+            if (sortBy) {
+                document.getElementById('sort_by').value = sortBy;
+            }
+            
+            // Initialize advanced search collapse state
+            const hasAdvancedFilters = {% if request.form.employment_type or request.form.status or request.form.retired %}true{% else %}false{% endif %};
+            if (hasAdvancedFilters) {
+                const collapseElement = document.getElementById('advancedSearch');
+                const bsCollapse = new bootstrap.Collapse(collapseElement, {
+                    toggle: false
+                });
+                bsCollapse.show();
+            }
+        });
+    </script>
+</body>
+</html>
