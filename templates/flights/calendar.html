@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Calendar Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas fa-calendar-alt text-primary mr-2"></i>
+                Flight Calendar - 
+                {% if current_view == 'month' %}
+                    {{ month_name }}
+                {% elif current_view == 'week' %}
+                    Week of {{ week_data.start_date.strftime('%b %d') }} - {{ week_data.end_date.strftime('%b %d, %Y') }}
+                {% else %}
+                    {{ day_data.date.strftime('%A, %B %d, %Y') }}
+                {% endif %}
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('view_flights') }}">Flights</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Calendar</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{{ url_for('flight_calendar', year=prev_year, month=prev_month, day=prev_day, view=current_view) }}" 
+               class="btn btn-outline-primary">
+                <i class="fas fa-chevron-left mr-2"></i> Previous
+            </a>
+            <a href="{{ url_for('flight_calendar', view=current_view) }}" class="btn btn-outline-secondary mx-2">
+                Today
+            </a>
+            <a href="{{ url_for('flight_calendar', year=next_year, month=next_month, day=next_day, view=current_view) }}" 
+               class="btn btn-outline-primary">
+                Next <i class="fas fa-chevron-right ml-2"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Calendar View Toggle -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('flight_calendar', year=current_year, month=current_month, day=current_day, view='month') }}" 
+                       class="btn btn-outline-secondary {% if current_view == 'month' %}active{% endif %}">
+                        Month
+                    </a>
+                    <a href="{{ url_for('flight_calendar', year=current_year, month=current_month, day=current_day, view='week') }}" 
+                       class="btn btn-outline-secondary {% if current_view == 'week' %}active{% endif %}">
+                        Week
+                    </a>
+                    <a href="{{ url_for('flight_calendar', year=current_year, month=current_month, day=current_day, view='day') }}" 
+                       class="btn btn-outline-secondary {% if current_view == 'day' %}active{% endif %}">
+                        Day
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if current_view == 'month' %}
+                <!-- Month View -->
+                <div class="calendar-header">
+                    {% for day in ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                    <div class="calendar-day-header">
+                        {{ day[:3] }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% for week in weeks %}
+                <div class="calendar-week">
+                    {% for day in week %}
+                    {% if day %}
+                    <div class="calendar-day 
+                                {% if day.is_today %}calendar-today{% endif %} 
+                                {% if day.is_weekend %}calendar-weekend{% endif %}">
+                        <div class="date-container">
+                            <div class="calendar-date">
+                                {{ day.day }}
+                                {% if day.is_today %}
+                                <span class="today-indicator"></span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="calendar-events">
+                            {% for event in day.events %}
+                            <div class="calendar-event {{ event.css_class }}"
+                                 onclick="window.location.href='{{ url_for('view_flight_details', flight_id=event.flight_id) }}'">
+                                <div class="event-time">
+                                    <i class="fas fa-{{ 'plane-departure' if event.type == 'departure' else 'plane-arrival' }} me-1"></i>
+                                    {{ event.time }}
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-passenger">
+                                        <div class="avatar avatar-xs bg-light-primary rounded-circle me-1">
+                                            <span class="avatar-content">{{ event.passenger|first|upper }}</span>
+                                        </div>
+                                        <strong>{{ event.passenger }}</strong>
+                                    </div>
+                                    <div class="event-location">
+                                        {{ event.airport }} <small class="text-muted">({{ event.country }})</small>
+                                    </div>
+                                    <div class="event-ref">
+                                        <small class="text-muted">Ref: {{ event.ref }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="calendar-day empty"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+            {% elif current_view == 'week' %}
+                <!-- Week View -->
+                <div class="calendar-week-view">
+                    <div class="calendar-week-header">
+                        {% for day in week_data.days %}
+                        <div class="calendar-day-header {% if day.is_today %}calendar-today{% endif %}">
+                            <div class="weekday-name">{{ day.day_name[:3] }}</div>
+                            <div class="date-container">
+                                <div class="day-number">
+                                    {{ day.day }}
+                                    {% if day.is_today %}
+                                    <span class="today-indicator"></span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="calendar-week-grid">
+                        {% for day in week_data.days %}
+                        <div class="calendar-week-day {% if day.is_today %}calendar-today{% endif %}">
+                            <div class="calendar-events">
+                                {% for event in day.events %}
+                                <div class="calendar-event {{ event.css_class }}"
+                                     onclick="window.location.href='{{ url_for('view_flight_details', flight_id=event.flight_id) }}'">
+                                    <div class="event-time">
+                                        <i class="fas fa-{{ 'plane-departure' if event.type == 'departure' else 'plane-arrival' }} me-1"></i>
+                                        {{ event.time }}
+                                    </div>
+                                    <div class="event-details">
+                                        <div class="event-passenger">
+                                            <strong>{{ event.passenger }}</strong>
+                                        </div>
+                                        <div class="event-location">
+                                            {{ event.airport }} <small class="text-muted">({{ event.country }})</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- Day View -->
+                <div class="calendar-day-view">
+                    <div class="calendar-day-header">
+                        <div class="date-display">
+                            <h4>
+                                {{ day_data.day_name }}, {{ day_data.date.strftime('%B %d, %Y') }}
+                                {% if day_data.is_today %}
+                                <span class="badge bg-primary">Today</span>
+                                {% endif %}
+                            </h4>
+                        </div>
+                    </div>
+                    
+                    <div class="calendar-day-events">
+                        {% if day_data.events %}
+                            {% for event in day_data.events %}
+                            <div class="calendar-event {{ event.css_class }} mb-3"
+                                 onclick="window.location.href='{{ url_for('view_flight_details', flight_id=event.flight_id) }}'">
+                                <div class="event-time">
+                                    <i class="fas fa-{{ 'plane-departure' if event.type == 'departure' else 'plane-arrival' }} me-2"></i>
+                                    <strong>{{ event.time }}</strong>
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-passenger">
+                                        <div class="avatar avatar-sm bg-light-primary rounded-circle me-2">
+                                            <span class="avatar-content">{{ event.passenger|first|upper }}</span>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-0">{{ event.passenger }}</h5>
+                                            <small class="text-muted">Ref: {{ event.ref }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="event-location mt-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-map-marker-alt me-2"></i>
+                                            <div>
+                                                <strong>{{ event.airport }}</strong>
+                                                <div class="text-muted">{{ event.country }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                                <h5>No flights scheduled for this day</h5>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Calendar Legend -->
+    <div class="d-flex justify-content-end mt-3">
+        <div class="d-flex align-items-center me-3">
+            <div class="calendar-legend-departure me-2"></div>
+            <small>Departure</small>
+        </div>
+        <div class="d-flex align-items-center">
+            <div class="calendar-legend-arrival me-2"></div>
+            <small>Arrival</small>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Base Calendar Styles */
+.calendar-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Header Styles */
+.calendar-header {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar-day-header {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+/* Month View Styles */
+.calendar-week {
+    display: flex;
+    min-height: 150px;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar-week:last-child {
+    border-bottom: none;
+}
+
+.calendar-day {
+    flex: 1;
+    padding: 8px;
+    border-right: 1px solid #eee;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.calendar-day:hover {
+    background-color: #f8f9fa;
+}
+
+.calendar-day:last-child {
+    border-right: none;
+}
+
+.calendar-day.empty {
+    background-color: #f9f9f9;
+}
+
+.calendar-today {
+    background-color: #e6f7ff;
+}
+
+.calendar-weekend {
+    background-color: #f8f9fa;
+}
+
+/* Date Styling */
+.date-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.calendar-date {
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #212529;
+    background-color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.calendar-date:hover {
+    transform: scale(1.1);
+    background-color: #e9ecef;
+}
+
+.calendar-today .calendar-date {
+    background-color: #0d6efd;
+    color: white;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.today-indicator {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #dc3545;
+    border-radius: 50%;
+}
+
+.calendar-weekend .calendar-date {
+    color: #dc3545;
+}
+
+/* Events Styling */
+.calendar-events {
+    max-height: 120px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.calendar-events::-webkit-scrollbar {
+    width: 4px;
+}
+
+.calendar-events::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 2px;
+}
+
+.calendar-event {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.calendar-event:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.event-departure {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left-color: #ffc107;
+}
+
+.event-arrival {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-left-color: #28a745;
+}
+
+.event-time {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+}
+
+.event-details {
+    font-size: 0.7rem;
+}
+
+.event-passenger {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.event-location {
+    margin-bottom: 2px;
+}
+
+.event-ref {
+    font-size: 0.65rem;
+}
+
+.avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-xs {
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+}
+
+.avatar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Week View Styles */
+.calendar-week-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.calendar-week-header {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar-week-header .calendar-day-header {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    border-right: 1px solid #eee;
+}
+
+.calendar-week-header .calendar-day-header:last-child {
+    border-right: none;
+}
+
+.calendar-week-header .calendar-day-header.calendar-today {
+    background-color: #e6f7ff;
+}
+
+.weekday-name {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.day-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #212529;
+    background-color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 0 auto;
+    position: relative;
+}
+
+.calendar-today .day-number {
+    background-color: #0d6efd;
+    color: white;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.calendar-week-grid {
+    display: flex;
+    flex: 1;
+    min-height: 400px;
+}
+
+.calendar-week-day {
+    flex: 1;
+    padding: 8px;
+    border-right: 1px solid #eee;
+    overflow-y: auto;
+}
+
+.calendar-week-day:last-child {
+    border-right: none;
+}
+
+.calendar-week-day.calendar-today {
+    background-color: #e6f7ff;
+}
+
+/* Day View Styles */
+.calendar-day-view {
+    padding: 20px;
+}
+
+.calendar-day-header {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+}
+
+.date-display h4 {
+    font-weight: bold;
+    color: #212529;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    display: inline-block;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calendar-day-events {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.calendar-day-events .calendar-event {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid transparent;
+}
+
+.calendar-day-events .event-time {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.calendar-day-events .event-passenger {
+    margin-bottom: 10px;
+}
+
+.calendar-day-events .event-location {
+    font-size: 0.9rem;
+}
+
+/* Legend Styles */
+.calendar-legend-departure {
+    width: 16px;
+    height: 16px;
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid #ffc107;
+    border-radius: 4px;
+}
+
+.calendar-legend-arrival {
+    width: 16px;
+    height: 16px;
+    background-color: rgba(40, 167, 69, 0.1);
+    border-left: 3px solid #28a745;
+    border-radius: 4px;
+}
+
+/* Hover Effects */
+.calendar-day:not(.empty):hover {
+    background-color: #f1f8ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1;
+    position: relative;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event to all calendar events
+    document.querySelectorAll('.calendar-event').forEach(event => {
+        event.addEventListener('click', function(e) {
+            // If clicking on a link inside the event, don't navigate
+            if (e.target.tagName === 'A' || e.target.parentElement.tagName === 'A') {
+                return;
+            }
+            window.location.href = this.getAttribute('onclick').match(/'(.*?)'/)[1];
+        });
+    });
+});
+</script>
+{% endblock %}

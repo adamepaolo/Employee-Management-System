@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2><i class="fas fa-envelope"></i> Contact Mertini Software Support</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('contact_us') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="form-group">
+                            <label for="name">Your Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <select class="form-control" id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                                <option value="Technical Support">Technical Support</option>
+                                <option value="Account Help">Account Help</option>
+                                <option value="Feature Request">Feature Request</option>
+                                <option value="Bug Report">Bug Report</option>
+                                <option value="General Inquiry">General Inquiry</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4><i class="fas fa-info-circle"></i> Contact Information</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Mertini Software Inc.</h5>
+                    <address>
+                        <p><i class="fas fa-phone"></i> <strong>Phone:</strong> +1 437 226 6656</p>
+                        <p><i class="fas fa-envelope"></i> <strong>Email:</strong> info.mertini@gmail.com</p>
+                        <p><i class="fas fa-clock"></i> <strong>Support Hours:</strong><br>
+                        Monday - Friday<br>
+                        9:00 AM - 5:00 PM EST</p>
+                    </address>
+                    
+                    <hr>
+                    
+                    <h5><i class="fas fa-question-circle"></i> Before You Contact Us</h5>
+                    <ul>
+                        <li>Check our <a href="{{ url_for('help_center') }}">Help Center</a> for answers</li>
+                        <li>Have your account information ready</li>
+                        <li>Describe your issue in detail</li>
+                    </ul>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> For urgent issues, please call our support line.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

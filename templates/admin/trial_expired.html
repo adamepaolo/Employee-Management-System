@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Trial Expired{% endblock %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h2 class="h5 mb-0">Trial Period Expired</h2>
+    </div>
+    <div class="card-body text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-calendar-times fa-5x text-danger mb-4"></i>
+            <h3 class="h4">Your trial period has ended</h3>
+            <p class="lead">
+                To continue using the application, please enter a valid extension code below.
+            </p>
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('apply_trial_extension_route') }}">
+							<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> <!-- Add this -->
+							
+							<div class="mb-3">
+								<label for="license_key" class="form-label">License Key</label>
+								<input type="text" class="form-control" id="license_key" name="license_key" required>
+							</div>
+							<button type="submit" class="btn btn-primary w-100">
+								Extend Trial Period
+							</button>
+						</form>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <p>
+                        Need a license key? Contact support at 
+                        <a href="mailto:info.mertini@gmail.com">info.mertini@gmail.com</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

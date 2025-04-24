@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Generate Reports</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('generate_reports') }}">
+				 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="report_type" class="form-label">Report Type</label>
+                        <select class="form-select" id="report_type" name="report_type" required>
+                            <option value="">Select Report Type</option>
+                            <option value="Company">By Company</option>
+                            <option value="Status">By Status</option>
+                            <option value="FieldOfAssignment">By Field of Assignment</option>
+                            <option value="FieldSite">By Field Site</option>
+                            <option value="Nationality">By Nationality</option>
+                            <option value="Designation">By Designation</option>
+                            <option value="EmploymentType">By Employment Type</option>
+                            <option value="all">All Employees</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="filter_value" class="form-label">Filter Value</label>
+                        <input type="text" class="form-control" id="filter_value" name="filter_value" list="filter_options" required>
+                        <datalist id="filter_options">
+                            <!-- Options will be populated by JavaScript -->
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-pdf me-2"></i>Generate Report
+                    </button>
+                    <a href="{{ url_for('main_menu') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportTypeSelect = document.getElementById('report_type');
+    const filterValueInput = document.getElementById('filter_value');
+    const filterOptionsDatalist = document.getElementById('filter_options');
+    
+    // Data for each report type
+    const reportOptions = {
+        'Company': {{ companies|tojson|safe }},
+        'Status': {{ statuses|tojson|safe }},
+        'FieldOfAssignment': {{ fields|tojson|safe }},
+        'FieldSite': {{ sites|tojson|safe }},
+        'Nationality': {{ nationalities|tojson|safe }},
+        'Designation': {{ designations|tojson|safe }},
+        'EmploymentType': {{ employment_types|tojson|safe }}
+    };
+    
+    reportTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        
+        // Clear previous options
+        filterOptionsDatalist.innerHTML = '';
+        filterValueInput.value = '';
+        
+        if (selectedType === 'all') {
+            filterValueInput.placeholder = 'Showing all employees';
+            filterValueInput.disabled = true;
+        } else {
+            filterValueInput.placeholder = 'Type or select a value';
+            filterValueInput.disabled = false;
+            
+            // Add options for the selected type
+            const options = reportOptions[selectedType] || [];
+            options.forEach(option => {
+                const optElement = document.createElement('option');
+                optElement.value = option;
+                filterOptionsDatalist.appendChild(optElement);
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
