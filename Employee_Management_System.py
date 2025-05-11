@@ -3,13 +3,16 @@ import sqlite3
 import sys
 import csv
 import io
+import tempfile
 import uuid
+import webbrowser
 from contextlib import contextmanager
+from openpyxl import Workbook
+import pandas as pd
 import requests
-
 from dateutil.relativedelta import relativedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, abort, session, \
-    Response, jsonify
+    Response, jsonify, make_response, send_file
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -17,10 +20,10 @@ from functools import wraps
 from typing import Optional, Dict, Any
 from datetime import date, timedelta
 from calendar import monthrange
-from flask import make_response
-from flask import send_file
 from flask_wtf.csrf import CSRFProtect, validate_csrf
+import warnings
 
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.secret_key = "your_very_secure_secret_key_here_change_me"
@@ -77,14 +80,8 @@ class Pagination:
         return self.page + 1
 
     @property
-    def first(self):
-        return (self.page - 1) * self.per_page + 1
-
-    @property
-    def last(self):
-        if self.page * self.per_page > self.total:
-            return self.total
-        return self.page * self.per_page
+    def skip(self):
+        return (self.page - 1) * self.per_page
 
     def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
         last = 0
@@ -106,13 +103,11 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-
-
 @contextmanager
 def get_db_connection():
     conn = None
     try:
-        conn = sqlite3.connect('employees.db')
+        conn = sqlite3.connect('Operations.db')
         conn.row_factory = sqlite3.Row
         # Enable foreign key support
         conn.execute("PRAGMA foreign_keys = ON")
@@ -130,7 +125,43 @@ def init_db():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS EmployeeRestDays (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                employee_id TEXT NOT NULL,
+                                day_of_week TEXT NOT NULL,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY (employee_id) REFERENCES Employees(EmployeeId)
+                            )
+                        """)
+            conn.commit()
 
+            # Create EmployeeRotations table if it doesn't exist
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS EmployeeRotations (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                employee_id TEXT NOT NULL,
+                                start_date DATE NOT NULL,
+                                rotation_days INTEGER NOT NULL,
+                                travel_to TEXT NOT NULL,
+                                travel_from TEXT NOT NULL,
+                                end_date DATE,
+                                status TEXT NOT NULL DEFAULT 'working',
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                created_by INTEGER,
+                                updated_at TIMESTAMP,
+                                updated_by INTEGER,
+                                FOREIGN KEY (employee_id) REFERENCES Employees(EmployeeId),
+                                FOREIGN KEY (created_by) REFERENCES Users(id),
+                                FOREIGN KEY (updated_by) REFERENCES Users(id)
+                            )
+                        """)
+
+            # Check if status column exists, if not add it
+            cursor.execute("PRAGMA table_info(EmployeeRotations)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'status' not in columns:
+                cursor.execute("ALTER TABLE EmployeeRotations ADD COLUMN status TEXT NOT NULL DEFAULT 'working'")
 
             # Check if Employees table exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Employees'")
@@ -161,6 +192,16 @@ def init_db():
                                     last_activity TIMESTAMP,
                                     last_action TEXT,
                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                )
+                            """)
+
+                cursor.execute("""
+                                CREATE TABLE IF NOT EXISTS EmployeeRestDays (
+                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    employee_id TEXT NOT NULL,
+                                    day_of_week TEXT NOT NULL,
+                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    FOREIGN KEY (employee_id) REFERENCES Employees(EmployeeId)
                                 )
                             """)
 
@@ -300,6 +341,27 @@ def init_db():
                 )
             """)
 
+            # Create EmployeeRotations table with status field
+            cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS EmployeeRotations (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                employee_id TEXT NOT NULL,
+                                start_date DATE NOT NULL,
+                                rotation_days INTEGER NOT NULL,
+                                travel_to TEXT NOT NULL,
+                                travel_from TEXT NOT NULL,
+                                end_date DATE,
+                                status TEXT NOT NULL DEFAULT 'working',
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                created_by INTEGER,
+                                updated_at TIMESTAMP,
+                                updated_by INTEGER,
+                                FOREIGN KEY (employee_id) REFERENCES Employees(EmployeeId),
+                                FOREIGN KEY (created_by) REFERENCES Users(id),
+                                FOREIGN KEY (updated_by) REFERENCES Users(id)
+                            )
+                        """)
+
             # Check if is_developer column exists (for older versions)
             cursor.execute("PRAGMA table_info(Users)")
             user_columns = [col[1] for col in cursor.fetchall()]
@@ -337,19 +399,18 @@ def init_db():
             cursor.execute("SELECT * FROM Users WHERE username = 'admin2'")
             admin2_exists = cursor.fetchone()
 
-
-
             conn.commit()
     except sqlite3.Error as e:
         error_message = f"Error initializing database: {e}"
         print(error_message)
-        # Don't use flash here since we might be outside request context
+        # Don't use flash here since we might be outside the request context
         if 'user_id' in session:  # Only flash if we're in a request context
             flash(error_message, "danger")
         raise RuntimeError(error_message) from e
 
 
 init_db()
+
 
 def activate_trial(key, hostname="My Server"):
     response = requests.post(
@@ -360,8 +421,6 @@ def activate_trial(key, hostname="My Server"):
         }
     )
     return response.json()
-
-
 
 
 def get_all_users():
@@ -429,7 +488,7 @@ def get_trial_status():
 def generate_trial_extension(days):
     """Generate a trial extension code"""
     import secrets
-    import hashlib
+
 
     # Generate a random license key
     key = f"TRL-{secrets.token_hex(8).upper()}"
@@ -481,6 +540,7 @@ def apply_trial_extension(key, username):
 
     except sqlite3.Error as e:
         return False, f"Database error: {e}"
+
 
 def update_user_activity(user_id, action):
     try:
@@ -537,7 +597,15 @@ def create_user(username, password, email, full_name):
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         return False
-
+def check_file_exists(file_path):
+    """Check if a file exists in the static folder"""
+    if not file_path:
+        return False
+    try:
+        full_path = os.path.join(app.static_folder, file_path)
+        return os.path.exists(full_path)
+    except Exception:
+        return False
 
 def get_all_pending_users():
     try:
@@ -589,11 +657,12 @@ def migrate_db():
                 conn.commit()
 
             # Check for other migrations that might be needed
-            # Add additional migration checks here as needed
+            # To Add additional migration checks here as needed
 
     except sqlite3.Error as e:
         print(f"Migration error: {e}")
         raise
+
 
 # Decorators
 def login_required(f):
@@ -612,6 +681,7 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
 
 trial_status = get_trial_status()
 
@@ -676,12 +746,12 @@ def extend_trial(extension_code):
             if not trial:
                 return False, "No trial settings found"
 
-            # Check if code is valid
+            # Check if the code is valid
             valid_codes = trial['extension_codes'].split(',') if trial['extension_codes'] else []
             if extension_code not in valid_codes:
                 return False, "Invalid extension code"
 
-            # Extend trial by 30 days
+            # Extend the trial by 30 days
             current_end = datetime.strptime(trial['end_date'], '%Y-%m-%d %H:%M:%S')
             new_end = current_end + timedelta(days=30)
 
@@ -700,6 +770,19 @@ def extend_trial(extension_code):
         return False, f"Database error: {e}"
 
 
+def calculate_end_date_with_rest_days(start_date, required_days, rest_days):
+    """Calculate end date considering rest days"""
+    current_date = start_date
+    worked_days = 0
+
+    while worked_days < required_days:
+        day_name = current_date.strftime('%A')
+        if day_name not in rest_days:
+            worked_days += 1
+        current_date += timedelta(days=1)
+
+    return current_date - timedelta(days=1)
+
 def trial_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -707,7 +790,9 @@ def trial_required(f):
             flash("Your trial period has expired. Please contact support.", "danger")
             return redirect(url_for('trial_expired'))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def admin_required(f):
     @wraps(f)
@@ -727,6 +812,65 @@ def admin_required(f):
 
     return decorated_function
 
+def allowed_file(filename):
+    """Check if the file has an allowed extension"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+
+def save_employee_photo(file, employee_id):
+    """Save uploaded employee photo and return relative path"""
+    if not file or file.filename == '':
+        return None
+
+    if not allowed_file(file.filename):
+        raise ValueError("Invalid file type. Allowed extensions: " +
+                         ", ".join(ALLOWED_EXTENSIONS))
+
+    # Generate secure filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{employee_id}_{timestamp}.{ext}"
+
+    # Determine paths based on execution environment
+    if getattr(sys, 'frozen', False):
+        # Running as executable
+        base_dir = os.path.dirname(sys.executable)
+        photo_dir = os.path.join(base_dir, 'static', 'employee_photos')
+        return_path = f"employee_photos/{filename}"
+    else:
+        # Running in development
+        base_dir = app.static_folder
+        photo_dir = os.path.join(base_dir, 'uploads')
+        return_path = f"uploads/{filename}"
+
+    # Ensure directory exists
+    os.makedirs(photo_dir, exist_ok=True)
+
+    # Save file
+    filepath = os.path.join(photo_dir, filename)
+    file.save(filepath)
+
+    return return_path
+
+
+def delete_old_photo(photo_path):
+    """Delete an old employee photo if it exists"""
+    if photo_path:
+        try:
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                full_path = os.path.join(os.path.dirname(sys.executable), 'static', photo_path)
+            else:
+                # Running in development
+                full_path = os.path.join(app.static_folder, photo_path)
+
+            if os.path.exists(full_path):
+                os.remove(full_path)
+        except Exception as e:
+            app.logger.error(f"Error deleting old photo: {str(e)}")
+            raise
+
 def developer_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -734,7 +878,9 @@ def developer_required(f):
             flash("Developer access required", "danger")
             return redirect(url_for('main_menu'))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 @app.route('/extend-trial', methods=['POST'])
 def apply_trial_extension_route():
@@ -744,7 +890,6 @@ def apply_trial_extension_route():
         flash(message, 'success' if success else 'danger')
 
         return redirect(url_for('main_menu'))
-
 
 
 @app.route('/trial/expired')
@@ -762,6 +907,34 @@ def extend_trial_route():
 
     return render_template('extend_trial.html')
 
+
+@app.route('/download_employee_template')
+def download_employee_template():
+    # Create a new Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Employees"
+
+    # Add headers
+    headers = [
+        "EmployeeId", "FirstName", "LastName", "MiddleName",
+        "EmploymentType", "Nationality", "PassportNumber",
+        "Designation", "Company", "Status"
+    ]
+    ws.append(headers)
+
+    # Save to a bytes buffer
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Return the file
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="employee_import_template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # Add this to your routes
 @app.route('/admin/generate_trial_key', methods=['POST'])
@@ -808,6 +981,121 @@ def send_trial_key():
         'message': f'Key {key} sent to {email}'
     })
 
+
+@app.route('/import_employees', methods=['POST'])
+@login_required
+def import_employees():
+    if 'excelFile' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+
+    file = request.files['excelFile']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'}), 400
+
+    if not (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+        return jsonify(
+            {'success': False, 'message': 'Invalid file type. Only Excel files (.xlsx, .xls) are allowed'}), 400
+
+    update_existing = request.form.get('updateExisting') == 'true'
+
+    try:
+        # Read the Excel file
+        df = pd.read_excel(file)
+
+        # Convert column names to match database fields
+        df.columns = df.columns.str.strip().str.replace(' ', '')
+
+        # Required fields check
+        required_fields = ['EmployeeId', 'FirstName', 'LastName', 'EmploymentType', 'PassportNumber']
+        missing_fields = [field for field in required_fields if field not in df.columns]
+
+        if missing_fields:
+            return jsonify({
+                'success': False,
+                'message': f'Missing required columns: {", ".join(missing_fields)}'
+            }), 400
+
+        # Process the data
+        imported = 0
+        updated = 0
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            for _, row in df.iterrows():
+                employee_data = {
+                    'EmployeeId': str(row['EmployeeId']).strip(),
+                    'FirstName': str(row['FirstName']).strip(),
+                    'LastName': str(row['LastName']).strip(),
+                    'DisplayName': f"{row['FirstName']} {row['LastName']}",
+                    'EmploymentType': str(row['EmploymentType']).strip(),
+                    'PassportNumber': str(row['PassportNumber']).strip(),
+                    'CreatedBy': session['username'],
+                    'CreatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+
+                # Add optional fields if they exist in the Excel
+                optional_fields = [
+                    'MiddleName', 'FullNameArabic', 'Nationality', 'NationalityArabic',
+                    'Designation', 'DesignationArabic', 'Company', 'CompanyArabic',
+                    'FieldOfAssignment', 'FieldSite', 'Rotation', 'Birthday', 'EmailAddress',
+                    'ContactNumber', 'Rate', 'RateDescription', 'ArrivalDate', 'StartedDate',
+                    'Retired', 'Status', 'DesertPassNumber', 'DesertPassIssuedDate',
+                    'DesertPassExpiryDate', 'BusinessVisaNumber', 'BusinessVisaIssuedDate',
+                    'BusinessVisaExpiryDate', 'ResidenceVisaNumber', 'ResidenceVisaIssuedDate',
+                    'ResidenceVisaExpiryDate', 'PassportIssuedDate', 'PassportExpiryDate',
+                    'AccountName', 'AccountNumber', 'IBAN', 'SwiftCode', 'BankName',
+                    'BankAddress', 'EmergencyContactName', 'EmergencyContactRelationship',
+                    'EmergencyContactNumber', 'EmergencyContactEmail'
+                ]
+
+                for field in optional_fields:
+                    if field in row and pd.notna(row[field]):
+                        employee_data[field] = str(row[field]).strip()
+
+                # Check if employee exists
+                cursor.execute("SELECT 1 FROM Employees WHERE EmployeeId = ?", (employee_data['EmployeeId'],))
+                exists = cursor.fetchone() is not None
+
+                if exists and update_existing:
+                    # Update existing employee
+                    update_fields = ", ".join([f"{k} = :{k}" for k in employee_data.keys() if
+                                               k not in ['EmployeeId', 'CreatedBy', 'CreatedAt']])
+
+                    cursor.execute(f"""
+                        UPDATE Employees SET 
+                            {update_fields},
+                            UpdatedBy = :CreatedBy,
+                            UpdatedAt = :CreatedAt
+                        WHERE EmployeeId = :EmployeeId
+                    """, employee_data)
+                    updated += 1
+                elif not exists:
+                    # Insert new employee
+                    columns = ", ".join(employee_data.keys())
+                    placeholders = ", ".join([f":{k}" for k in employee_data.keys()])
+
+                    cursor.execute(f"""
+                        INSERT INTO Employees ({columns}) 
+                        VALUES ({placeholders})
+                    """, employee_data)
+                    imported += 1
+
+            conn.commit()
+
+        return jsonify({
+            'success': True,
+            'imported': imported,
+            'updated': updated,
+            'message': 'Import completed successfully'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error during import: {str(e)}'
+        }), 500
+
 @app.route('/admin/generate_extension_codes', methods=['POST'])
 @developer_required
 def generate_extension_codes():
@@ -850,6 +1138,7 @@ def generate_extension_codes():
 @trial_required
 def main_menu():
     return render_template('main_menu.html', trial_status=get_trial_status())
+
 
 # Add @trial_required to other important routes
 @app.route('/admin/trial', methods=['GET', 'POST'])
@@ -894,7 +1183,6 @@ def manage_trial():
     except sqlite3.Error as e:
         flash(f"Database error: {e}", "danger")
         licenses = []
-
 
     return render_template('admin/trial_management.html',
                            trial_status=trial_status,
@@ -968,9 +1256,9 @@ def api_activate_trial():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Unexpected error: {e}'}), 500
 
+
 # Auth Routes
 @app.route('/register', methods=['GET', 'POST'])
-
 def register():
     if request.method == 'POST':
         # Validate CSRF token
@@ -1273,6 +1561,7 @@ def check_license_key(key):
     except sqlite3.Error as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/admin/delete_user/<int:user_id>')
 @admin_required
 def admin_delete_user(user_id):
@@ -1381,42 +1670,41 @@ def _process_employee_form(form: dict, files: dict, employee_id: str, is_update:
         retirement_date = datetime.now().date().isoformat()
 
     # Process document uploads
-    business_visa_path = None
-    residence_visa_path = None
-    passport_path = None
-
-    # Business Visa File
-    if 'business_visa_file' in files and files['business_visa_file']:
-        file = files['business_visa_file']
-        if file.filename:
+    def save_uploaded_file(file, folder_config, prefix):
+        if file and file.filename:
             if not allowed_file(file.filename):
-                raise ValueError("Invalid file type for business visa document. Allowed: pdf, png, jpg, jpeg")
-            filename = secure_filename(f"{employee_id}_business_visa_{file.filename}")
-            file_path = os.path.join(app.config['VISA_DOCS_FOLDER'], filename)
-            file.save(file_path)
-            business_visa_path = f"visa_docs/{filename}"
+                raise ValueError(f"Invalid file type for {prefix} document. Allowed: pdf, png, jpg, jpeg")
 
-    # Residence Visa File
-    if 'residence_visa_file' in files and files['residence_visa_file']:
-        file = files['residence_visa_file']
-        if file.filename:
-            if not allowed_file(file.filename):
-                raise ValueError("Invalid file type for residence visa document. Allowed: pdf, png, jpg, jpeg")
-            filename = secure_filename(f"{employee_id}_residence_visa_{file.filename}")
-            file_path = os.path.join(app.config['VISA_DOCS_FOLDER'], filename)
-            file.save(file_path)
-            residence_visa_path = f"visa_docs/{filename}"
+            # Ensure upload directory exists
+            os.makedirs(app.config[folder_config], exist_ok=True)
 
-    # Passport File
-    if 'passport_file' in files and files['passport_file']:
-        file = files['passport_file']
-        if file.filename:
-            if not allowed_file(file.filename):
-                raise ValueError("Invalid file type for passport document. Allowed: pdf, png, jpg, jpeg")
-            filename = secure_filename(f"{employee_id}_passport_{file.filename}")
-            file_path = os.path.join(app.config['PASSPORT_DOCS_FOLDER'], filename)
+            filename = secure_filename(f"{employee_id}_{prefix}_{file.filename}")
+            file_path = os.path.join(app.config[folder_config], filename)
+
+            # Save the file
             file.save(file_path)
-            passport_path = f"passport_docs/{filename}"
+
+            # Return a relative path for database storage
+            return f"{folder_config.split('_')[0]}_docs/{filename}"
+        return None
+
+    business_visa_path = save_uploaded_file(
+        files.get('business_visa_file'),
+        'VISA_DOCS_FOLDER',
+        'business_visa'
+    )
+
+    residence_visa_path = save_uploaded_file(
+        files.get('residence_visa_file'),
+        'VISA_DOCS_FOLDER',
+        'residence_visa'
+    )
+
+    passport_path = save_uploaded_file(
+        files.get('passport_file'),
+        'PASSPORT_DOCS_FOLDER',
+        'passport'
+    )
 
     return {
         'EmployeeId': employee_id,
@@ -1475,7 +1763,54 @@ def _process_employee_form(form: dict, files: dict, employee_id: str, is_update:
     }
 
 
+# Add this right after your configuration section
+def verify_static_folders():
+    folders = [
+        app.config['UPLOAD_FOLDER'],
+        app.config['VISA_DOCS_FOLDER'],
+        app.config['PASSPORT_DOCS_FOLDER'],
+        app.config['TICKET_DOCS_FOLDER']
+    ]
 
+    for folder in folders:
+        try:
+            os.makedirs(folder, exist_ok=True)
+            # Test write permission
+            test_file = os.path.join(folder, '.test')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+        except Exception as e:
+            print(f"ERROR: Cannot access folder {folder}: {str(e)}")
+            raise RuntimeError(f"Cannot access folder {folder}")
+
+
+# Call this function after app configuration
+verify_static_folders()
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@app.route('/debug/files')
+@developer_required
+def debug_files():
+    files_info = []
+    for folder in ['VISA_DOCS_FOLDER', 'PASSPORT_DOCS_FOLDER', 'TICKET_DOCS_FOLDER']:
+        path = app.config[folder]
+        files = []
+        try:
+            files = os.listdir(path)
+        except Exception as e:
+            files = [f"Error: {str(e)}"]
+        files_info.append({
+            'folder': folder,
+            'path': path,
+            'files': files
+        })
+    return jsonify(files_info)
 
 
 @app.route('/register_employee', methods=['GET', 'POST'])
@@ -1483,64 +1818,712 @@ def _process_employee_form(form: dict, files: dict, employee_id: str, is_update:
 def register_employee():
     if request.method == 'POST':
         try:
-            employee_data = _process_employee_form(request.form, request.files, request.form['employee_id'])
+            employee_id = request.form['employee_id']
 
-            # Add system information fields with proper values
-            employee_data.update({
+            # Handle photo upload
+            photo_path = None
+            if 'photo' in request.files:
+                photo_file = request.files['photo']
+                if photo_file.filename:  # User selected a file
+                    photo_path = save_employee_photo(photo_file, employee_id)
+                    try:
+                        photo_path = save_employee_photo(photo_file, request.form['employee_id'])
+                    except ValueError as e:
+                        flash(str(e), "danger")
+                        return redirect(url_for('register_employee'))
+                    except Exception as e:
+                        flash("Error saving employee photo", "danger")
+                        return redirect(url_for('register_employee'))
+            # Process date fields
+            def parse_date(date_str):
+                return datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+
+            # Create employee data with all fields
+            employee_data = {
+                'EmployeeId': employee_id,
+                'FirstName': request.form['first_name'],
+                'MiddleName': request.form.get('middle_name'),
+                'LastName': request.form['last_name'],
+                'DisplayName': f"{request.form['first_name']} {request.form['last_name']}",
+                'FullNameArabic': request.form.get('full_name_arabic'),
+                'EmploymentType': request.form['employment_type'],
+                'Nationality': request.form['nationality'],
+                'NationalityArabic': request.form.get('nationality_arabic'),
+                'PassportNumber': request.form['passport_number'],
+                'Designation': request.form['designation'],
+                'DesignationArabic': request.form.get('designation_arabic'),
+                'Company': request.form['company'],
+                'CompanyArabic': request.form.get('company_arabic'),
+                'PhotoPath': photo_path,
+                'FieldOfAssignment': request.form['field_of_assignment'],
+                'FieldSite': request.form['field_site'],
+                'Rotation': request.form['rotation'],
+                'Birthday': parse_date(request.form['birthday']),
+                'EmailAddress': request.form.get('email_address'),
+                'ContactNumber': request.form['contact_number'],
+                'Rate': float(request.form['rate']),
+                'RateDescription': request.form['rate_description'],
+                'ArrivalDate': parse_date(request.form['arrival_date']),
+                'StartedDate': parse_date(request.form['started_date']),
+                'Retired': request.form.get('retired', 'No'),
+                'Status': request.form['status'],
+                'DesertPassNumber': request.form.get('desert_pass_number'),
+                'DesertPassIssuedDate': parse_date(request.form.get('desert_pass_issued_date')),
+                'DesertPassExpiryDate': parse_date(request.form.get('desert_pass_expiry_date')),
+                'BusinessVisaNumber': request.form.get('business_visa_number'),
+                'BusinessVisaIssuedDate': parse_date(request.form.get('business_visa_issued_date')),
+                'BusinessVisaExpiryDate': parse_date(request.form.get('business_visa_expiry_date')),
+                'ResidenceVisaNumber': request.form.get('residence_visa_number'),
+                'ResidenceVisaIssuedDate': parse_date(request.form.get('residence_visa_issued_date')),
+                'ResidenceVisaExpiryDate': parse_date(request.form.get('residence_visa_expiry_date')),
+                'PassportIssuedDate': parse_date(request.form.get('passport_issued_date')),
+                'PassportExpiryDate': parse_date(request.form.get('passport_expiry_date')),
+                'AccountName': request.form.get('account_name'),
+                'AccountNumber': request.form.get('account_number'),
+                'IBAN': request.form.get('iban'),
+                'SwiftCode': request.form.get('swift_code'),
+                'BankName': request.form.get('bank_name'),
+                'BankAddress': request.form.get('bank_address'),
+                'EmergencyContactName': request.form.get('emergency_contact_name'),
+                'EmergencyContactRelationship': request.form.get('emergency_contact_relationship'),
+                'EmergencyContactNumber': request.form.get('emergency_contact_number'),
+                'EmergencyContactEmail': request.form.get('emergency_contact_email'),
                 'CreatedBy': session['username'],
-                'CreatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'UpdatedBy': session['username'],
-                'UpdatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            })
+                'CreatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
 
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO Employees (
-                        EmployeeId, FirstName, MiddleName, LastName, DisplayName, 
-                        FullNameArabic, EmploymentType, Nationality, NationalityArabic, 
-                        PassportNumber, Designation, DesignationArabic, Company, 
-                        CompanyArabic, PhotoPath, FieldOfAssignment, FieldSite, 
-                        Rotation, Birthday, Age, EmailAddress, ContactNumber, 
-                        Rate, RateDescription, ArrivalDate, StartedDate, 
-                        Retired, RetirementDate, Status, DesertPassNumber, DesertPassIssuedDate,
+                        EmployeeId, FirstName, MiddleName, LastName, DisplayName, FullNameArabic,
+                        EmploymentType, Nationality, NationalityArabic, PassportNumber,
+                        Designation, DesignationArabic, Company, CompanyArabic, PhotoPath,
+                        FieldOfAssignment, FieldSite, Rotation, Birthday, EmailAddress,
+                        ContactNumber, Rate, RateDescription, ArrivalDate, StartedDate,
+                        Retired, Status, DesertPassNumber, DesertPassIssuedDate,
                         DesertPassExpiryDate, BusinessVisaNumber, BusinessVisaIssuedDate,
                         BusinessVisaExpiryDate, ResidenceVisaNumber, ResidenceVisaIssuedDate,
                         ResidenceVisaExpiryDate, PassportIssuedDate, PassportExpiryDate,
-                        AccountName, AccountNumber, IBAN, SwiftCode, BankName,
-                        BankAddress, EmergencyContactName, EmergencyContactRelationship,
-                        EmergencyContactNumber, EmergencyContactEmail,
-                        BusinessVisaFilePath, ResidenceVisaFilePath, PassportFilePath,
-                        CreatedBy, CreatedAt, UpdatedBy, UpdatedAt
+                        AccountName, AccountNumber, IBAN, SwiftCode, BankName, BankAddress,
+                        EmergencyContactName, EmergencyContactRelationship,
+                        EmergencyContactNumber, EmergencyContactEmail, CreatedBy, CreatedAt
                     ) VALUES (
-                        :EmployeeId, :FirstName, :MiddleName, :LastName, :DisplayName, 
-                        :FullNameArabic, :EmploymentType, :Nationality, :NationalityArabic, 
-                        :PassportNumber, :Designation, :DesignationArabic, :Company, 
-                        :CompanyArabic, :PhotoPath, :FieldOfAssignment, :FieldSite, 
-                        :Rotation, :Birthday, :Age, :EmailAddress, :ContactNumber, 
-                        :Rate, :RateDescription, :ArrivalDate, :StartedDate, 
-                        :Retired, :RetirementDate, :Status, :DesertPassNumber, :DesertPassIssuedDate,
+                        :EmployeeId, :FirstName, :MiddleName, :LastName, :DisplayName, :FullNameArabic,
+                        :EmploymentType, :Nationality, :NationalityArabic, :PassportNumber,
+                        :Designation, :DesignationArabic, :Company, :CompanyArabic, :PhotoPath,
+                        :FieldOfAssignment, :FieldSite, :Rotation, :Birthday, :EmailAddress,
+                        :ContactNumber, :Rate, :RateDescription, :ArrivalDate, :StartedDate,
+                        :Retired, :Status, :DesertPassNumber, :DesertPassIssuedDate,
                         :DesertPassExpiryDate, :BusinessVisaNumber, :BusinessVisaIssuedDate,
                         :BusinessVisaExpiryDate, :ResidenceVisaNumber, :ResidenceVisaIssuedDate,
                         :ResidenceVisaExpiryDate, :PassportIssuedDate, :PassportExpiryDate,
-                        :AccountName, :AccountNumber, :IBAN, :SwiftCode, :BankName,
-                        :BankAddress, :EmergencyContactName, :EmergencyContactRelationship,
-                        :EmergencyContactNumber, :EmergencyContactEmail,
-                        :BusinessVisaFilePath, :ResidenceVisaFilePath, :PassportFilePath,
-                        :CreatedBy, :CreatedAt, :UpdatedBy, :UpdatedAt
+                        :AccountName, :AccountNumber, :IBAN, :SwiftCode, :BankName, :BankAddress,
+                        :EmergencyContactName, :EmergencyContactRelationship,
+                        :EmergencyContactNumber, :EmergencyContactEmail, :CreatedBy, :CreatedAt
                     )
                 """, employee_data)
                 conn.commit()
-                update_user_activity(session['user_id'], f"Registered new employee: {employee_data['EmployeeId']}")
-                flash('Employee registered successfully!', 'success')
-                return redirect(url_for('view_profile', employee_id=employee_data['EmployeeId']))
+
+            flash('Employee registered successfully!', 'success')
+            return redirect(url_for('view_profile', employee_id=employee_id))
 
         except ValueError as e:
             flash(str(e), "danger")
         except sqlite3.Error as e:
             flash(f"Database error: {e}", "danger")
+        except Exception as e:
+            flash(f"Unexpected error: {str(e)}", "danger")
 
     return render_template('register_employee.html')
+
+
+# Add this route for updating rotations
+@app.route('/rotations/update/<int:rotation_id>', methods=['GET', 'POST'])
+@login_required
+def update_rotation(rotation_id):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            if request.method == 'POST':
+                validate_csrf(request.form.get('csrf_token'))
+
+                # Get form data
+                start_date = request.form['start_date']
+                rotation_days = int(request.form['rotation_days'])
+                travel_to = request.form['travel_to']
+                travel_from = request.form['travel_from']
+                rest_days = request.form.getlist('rest_days')
+                status = request.form['status']
+
+                # Calculate end date
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = calculate_end_date_with_rest_days(start_date_obj, rotation_days, rest_days)
+
+                # Update rotation in database
+                cursor.execute("""
+                    UPDATE EmployeeRotations SET
+                        start_date = ?,
+                        rotation_days = ?,
+                        travel_to = ?,
+                        travel_from = ?,
+                        end_date = ?,
+                        status = ?,
+                        updated_at = CURRENT_TIMESTAMP,
+                        updated_by = ?
+                    WHERE id = ?
+                """, (
+                    start_date, rotation_days, travel_to, travel_from,
+                    end_date, status, session['user_id'], rotation_id
+                ))
+
+                # Update rest days
+                cursor.execute("DELETE FROM EmployeeRestDays WHERE employee_id = ?",
+                               (request.form['employee_id'],))
+
+                for day in rest_days:
+                    cursor.execute("""
+                        INSERT INTO EmployeeRestDays (employee_id, day_of_week)
+                        VALUES (?, ?)
+                    """, (request.form['employee_id'], day))
+
+                conn.commit()
+                flash("Rotation updated successfully!", "success")
+                return redirect(url_for('manage_rotations'))
+
+            # GET request - load rotation data with creator/updater info
+            cursor.execute("""
+                SELECT 
+                    r.*, 
+                    e.DisplayName as employee_name,
+                    creator.username as created_by_name,
+                    updater.username as updated_by_name
+                FROM EmployeeRotations r
+                JOIN Employees e ON r.employee_id = e.EmployeeId
+                LEFT JOIN Users creator ON r.created_by = creator.id
+                LEFT JOIN Users updater ON r.updated_by = updater.id
+                WHERE r.id = ?
+            """, (rotation_id,))
+            rotation = cursor.fetchone()
+
+            if not rotation:
+                flash("Rotation not found", "danger")
+                return redirect(url_for('manage_rotations'))
+
+            # Get rest days for this employee
+            cursor.execute("""
+                SELECT day_of_week FROM EmployeeRestDays 
+                WHERE employee_id = ?
+            """, (rotation['employee_id'],))
+            current_rest_days = [row['day_of_week'] for row in cursor.fetchall()]
+
+            return render_template('rotations/update_rotation.html',
+                                   rotation=dict(rotation),
+                                   current_rest_days=current_rest_days)
+
+    except Exception as e:
+        flash(f"Error updating rotation: {str(e)}", "danger")
+        return redirect(url_for('manage_rotations'))
+
+
+# Update the manage_rotations route to include filters
+@app.route('/rotations', methods=['GET', 'POST'])
+@login_required
+def manage_rotations():
+    if request.method == 'POST':
+        try:
+            employee_id = request.form['employee_id']
+            start_date = request.form['start_date']
+            rotation_days = int(request.form['rotation_days'])
+            travel_to = request.form['travel_to']
+            travel_from = request.form['travel_from']
+            rest_days = request.form.getlist('rest_days')
+            status = request.form['status']
+
+            # Calculate end date considering rest days
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = calculate_end_date_with_rest_days(start_date_obj, rotation_days, rest_days)
+
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO EmployeeRotations (
+                        employee_id, start_date, rotation_days, 
+                        travel_to, travel_from, end_date, status,
+                        created_by, updated_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    employee_id, start_date, rotation_days,
+                    travel_to, travel_from, end_date, status,
+                    session['user_id'], session['user_id']
+                ))
+                rotation_id = cursor.lastrowid
+
+                # Insert rest days
+                for day in rest_days:
+                    cursor.execute("""
+                        INSERT INTO EmployeeRestDays (employee_id, day_of_week)
+                        VALUES (?, ?)
+                    """, (employee_id, day))
+
+                conn.commit()
+
+            flash("Rotation added successfully!", "success")
+            return redirect(url_for('manage_rotations'))
+
+        except Exception as e:
+            flash(f"Error adding rotation: {str(e)}", "danger")
+
+    # GET request - show rotation management page
+    try:
+        employee_filter = request.args.get('employee_filter', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get all ACTIVE employees for dropdown
+            cursor.execute("""
+                SELECT EmployeeId, DisplayName, Status 
+                FROM Employees 
+                WHERE Status = 'Active'
+                ORDER BY DisplayName
+            """)
+            employees = cursor.fetchall()
+
+            # Get filtered rotations with employee names
+            query = """
+                SELECT r.*, e.DisplayName as employee_name 
+                FROM EmployeeRotations r
+                JOIN Employees e ON r.employee_id = e.EmployeeId
+                WHERE 1=1
+            """
+            params = []
+
+            if employee_filter:
+                query += " AND r.employee_id = ?"
+                params.append(employee_filter)
+
+            if date_from:
+                query += " AND r.end_date >= ?"
+                params.append(date_from)
+
+            if date_to:
+                query += " AND r.start_date <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY r.start_date DESC"
+
+            cursor.execute(query, params)
+            rotations = [dict(row) for row in cursor.fetchall()]
+
+            return render_template('rotations/manage_rotations.html',
+                                   employees=employees,
+                                   rotations=rotations,
+                                   filters={
+                                       'employee_filter': employee_filter,
+                                       'date_from': date_from,
+                                       'date_to': date_to
+                                   })
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('main_menu'))
+
+
+@app.route('/rotations/calendar')
+@app.route('/rotations/calendar/<int:year>/<int:month>')
+@app.route('/rotations/calendar/<int:year>/<int:month>/<int:day>')
+@login_required
+def rotation_calendar(year=None, month=None, day=None):
+    employee_filter = request.args.get('employee_filter', '')
+    current_view = request.args.get('view', 'month')
+
+    # Set default to current date if not provided
+    today = datetime.now().date()
+    if None in (year, month):
+        year, month = today.year, today.month
+    if day is None:
+        day = today.day
+
+    # Ensure valid date parameters
+    year, month, day = int(year), int(month), int(day)
+    current_date = date(year, month, day)
+
+    # Calculate navigation dates
+    if current_view == 'month':
+        prev_date = current_date - relativedelta(months=1)
+        next_date = current_date + relativedelta(months=1)
+        prev_year, prev_month, prev_day = prev_date.year, prev_date.month, day
+        next_year, next_month, next_day = next_date.year, next_date.month, day
+        first_day = date(year, month, 1)
+        last_day = date(year, month, monthrange(year, month)[1])
+    elif current_view == 'week':
+        prev_date = current_date - timedelta(weeks=1)
+        next_date = current_date + timedelta(weeks=1)
+        prev_year, prev_month, prev_day = prev_date.year, prev_date.month, prev_date.day
+        next_year, next_month, next_day = next_date.year, next_date.month, next_date.day
+        start_of_week = current_date - timedelta(days=current_date.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+    else:  # day view
+        prev_date = current_date - timedelta(days=1)
+        next_date = current_date + timedelta(days=1)
+        prev_year, prev_month, prev_day = prev_date.year, prev_date.month, prev_date.day
+        next_year, next_month, next_day = next_date.year, next_date.month, next_date.day
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get all employees for filter dropdown
+            cursor.execute("SELECT EmployeeId, DisplayName, PhotoPath FROM Employees ORDER BY DisplayName")
+            employees = cursor.fetchall()
+
+            # Base query for rotations
+            query = """
+                SELECT 
+                    r.id as rotation_id, r.employee_id, r.start_date, r.end_date,
+                    r.travel_to, r.travel_from, r.rotation_days,
+                    e.DisplayName as employee_name,
+                    e.PhotoPath as employee_photo
+                FROM EmployeeRotations r
+                JOIN Employees e ON r.employee_id = e.EmployeeId
+                WHERE 1=1
+            """
+            params = []
+
+            if employee_filter:
+                query += " AND r.employee_id = ?"
+                params.append(employee_filter)
+
+            # Adjust query based on a view type
+            if current_view == 'month':
+                query += """
+                    AND (
+                        (r.start_date <= ? AND r.end_date >= ?) OR
+                        (r.start_date BETWEEN ? AND ?) OR
+                        (r.end_date BETWEEN ? AND ?)
+                    )
+                """
+                params.extend([last_day, first_day, first_day, last_day, first_day, last_day])
+            elif current_view == 'week':
+                query += """
+                    AND (
+                        (r.start_date <= ? AND r.end_date >= ?) OR
+                        (r.start_date BETWEEN ? AND ?) OR
+                        (r.end_date BETWEEN ? AND ?)
+                    )
+                """
+                params.extend([end_of_week, start_of_week, start_of_week, end_of_week, start_of_week, end_of_week])
+            else:  # day view
+                query += " AND (r.start_date = ? OR r.end_date = ?)"
+                params.extend([current_date, current_date])
+
+            cursor.execute(query, params)
+            rotations = [dict(row) for row in cursor.fetchall()]
+
+            # Process into calendar events
+            events = {}
+            for rotation in rotations:
+                # Convert string dates to date objects
+                start_date = datetime.strptime(rotation['start_date'], '%Y-%m-%d').date()
+                end_date = datetime.strptime(rotation['end_date'], '%Y-%m-%d').date()
+
+                # Add start date event
+                if start_date not in events:
+                    events[start_date] = []
+                events[start_date].append({
+                    'rotation_id': rotation['rotation_id'],
+                    'employee_id': rotation['employee_id'],
+                    'employee_name': rotation['employee_name'],
+                    'employee_photo': rotation['employee_photo'],
+                    'travel_to': rotation['travel_to'],
+                    'travel_from': rotation['travel_from'],
+                    'is_start': True,
+                    'is_end': False,
+                    'css_class': 'event-start'
+                })
+
+                # Add end date event
+                if end_date not in events:
+                    events[end_date] = []
+                events[end_date].append({
+                    'rotation_id': rotation['rotation_id'],
+                    'employee_id': rotation['employee_id'],
+                    'employee_name': rotation['employee_name'],
+                    'employee_photo': rotation['employee_photo'],
+                    'travel_to': rotation['travel_to'],
+                    'travel_from': rotation['travel_from'],
+                    'is_start': False,
+                    'is_end': True,
+                    'css_class': 'event-end'
+                })
+
+            # Get unique employees in rotation for summary
+            unique_employees = {}
+            for rotation in rotations:
+                emp_id = rotation['employee_id']
+                if emp_id not in unique_employees:
+                    unique_employees[emp_id] = {
+                        'name': rotation['employee_name'],
+                        'photo': rotation['employee_photo'],
+                        'rotations': []
+                    }
+                unique_employees[emp_id]['rotations'].append({
+                    'start_date': rotation['start_date'],
+                    'end_date': rotation['end_date'],
+                    'travel_to': rotation['travel_to'],
+                    'travel_from': rotation['travel_from']
+                })
+
+            # Prepare data based on view type
+            if current_view == 'month':
+                # Build month grid
+                month_weeks = []
+                week = []
+                current_day = first_day
+
+                # Pad beginning of month
+                for _ in range(first_day.weekday()):
+                    week.append(None)
+
+                while current_day <= last_day:
+                    if len(week) == 7:
+                        month_weeks.append(week)
+                        week = []
+
+                    day_events = events.get(current_day, [])
+                    week.append({
+                        'date': current_day,
+                        'day': current_day.day,
+                        'events': day_events,
+                        'is_today': current_day == today,
+                        'is_weekend': current_day.weekday() >= 5
+                    })
+                    current_day += timedelta(days=1)
+
+                # Pad end of month
+                if week:
+                    week.extend([None] * (7 - len(week)))
+                    month_weeks.append(week)
+
+                week_data = None
+                day_data = None
+
+            elif current_view == 'week':
+                # Build week structure
+                week_days = []
+                for i in range(7):
+                    day_date = start_of_week + timedelta(days=i)
+                    week_days.append({
+                        'date': day_date,
+                        'day': day_date.day,
+                        'day_name': day_date.strftime('%A'),
+                        'events': events.get(day_date, []),
+                        'is_today': day_date == today
+                    })
+
+                month_weeks = None
+                day_data = None
+                week_data = {
+                    'start_date': start_of_week,
+                    'end_date': end_of_week,
+                    'days': week_days
+                }
+
+            else:  # day view
+                # Prepare day data
+                month_weeks = None
+                week_data = None
+                day_data = {
+                    'date': current_date,
+                    'day_name': current_date.strftime('%A'),
+                    'events': events.get(current_date, []),
+                    'is_today': current_date == today
+                }
+
+            return render_template('rotations/rotation_calendar.html',
+                                   month_weeks=month_weeks,
+                                   week_data=week_data,
+                                   day_data=day_data,
+                                   current_view=current_view,
+                                   current_date=current_date,
+                                   today=today,
+                                   prev_year=prev_year,
+                                   prev_month=prev_month,
+                                   prev_day=prev_day,
+                                   next_year=next_year,
+                                   next_month=next_month,
+                                   next_day=next_day,
+                                   employees=employees,
+                                   employee_filter=employee_filter,
+                                   unique_employees=unique_employees,
+                                   rotations=rotations)
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {str(e)}", "danger")
+        return redirect(url_for('manage_rotations'))
+    except Exception as e:
+        flash(f"Error loading rotation calendar: {str(e)}", "danger")
+        return redirect(url_for('manage_rotations'))
+
+
+    except Exception as e:
+
+        flash(f"Error loading rotation calendar: {str(e)}", "danger")
+
+        return redirect(url_for('manage_rotations'))
+
+
+@app.route('/rotations/history/<employee_id>')
+@login_required
+def rotation_history(employee_id):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get employee details
+            cursor.execute("SELECT EmployeeId, DisplayName FROM Employees WHERE EmployeeId = ?", (employee_id,))
+            employee = cursor.fetchone()
+
+            if not employee:
+                flash("Employee not found", "danger")
+                return redirect(url_for('manage_rotations'))
+
+            # Get rotation history with creator/updater info
+            cursor.execute("""
+                SELECT 
+                    r.*, 
+                    creator.username as created_by_name,
+                    updater.username as updated_by_name
+                FROM EmployeeRotations r
+                LEFT JOIN Users creator ON r.created_by = creator.id
+                LEFT JOIN Users updater ON r.updated_by = updater.id
+                WHERE r.employee_id = ?
+                ORDER BY r.start_date DESC
+            """, (employee_id,))
+            rotations = [dict(row) for row in cursor.fetchall()]
+
+            update_user_activity(
+                session['user_id'],
+                f"Viewed rotation history for employee {employee_id}"
+            )
+            return render_template('rotations/rotation_history.html',
+                                   employee=dict(employee),
+                                   rotations=rotations)
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('manage_rotations'))
+
+
+@app.route('/rotations/export/<export_type>', methods=['POST'])
+@login_required
+def export_rotations(export_type):
+    try:
+        # Get filter parameters
+        employee_id = request.form.get('employee_id')
+        date_from = request.form.get('date_from')
+        date_to = request.form.get('date_to')
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Build query based on filters
+            query = """
+                SELECT 
+                    r.*, 
+                    e.DisplayName as employee_name
+                FROM EmployeeRotations r
+                JOIN Employees e ON r.employee_id = e.EmployeeId
+                WHERE 1=1
+            """
+            params = []
+
+            if employee_id:
+                query += " AND r.employee_id = ?"
+                params.append(employee_id)
+
+            if date_from:
+                query += " AND r.end_date >= ?"
+                params.append(date_from)
+
+            if date_to:
+                query += " AND r.start_date <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY r.start_date"
+
+            cursor.execute(query, params)
+            rotations = [dict(row) for row in cursor.fetchall()]
+
+            if export_type == 'excel':
+                output = io.StringIO()
+                writer = csv.writer(output)
+
+                # Write header
+                writer.writerow([
+                    'Employee', 'Start Date', 'End Date',
+                    'Duration (days)', 'Travel To', 'Travel From'
+                ])
+
+                # Write data
+                for rotation in rotations:
+                    writer.writerow([
+                        rotation['employee_name'],
+                        rotation['start_date'],
+                        rotation['end_date'],
+                        rotation['rotation_days'],
+                        rotation['travel_to'],
+                        rotation['travel_from']
+                    ])
+
+                output.seek(0)
+
+                update_user_activity(
+                    session['user_id'],
+                    "Exported rotation report to Excel"
+                )
+                return Response(
+                    output,
+                    mimetype="text/csv",
+                    headers={
+                        'Content-Disposition': 'attachment;filename=employee_rotations.csv'
+                    }
+                )
+
+            else:
+                flash("Invalid export type", "danger")
+                return redirect(url_for('manage_rotations'))
+
+    except Exception as e:
+        flash(f"Error exporting rotations: {str(e)}", "danger")
+        return redirect(url_for('manage_rotations'))
+
+
+@app.route('/rotations/delete/<int:rotation_id>', methods=['POST'])
+@login_required
+def delete_rotation(rotation_id):
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM EmployeeRotations WHERE id = ?", (rotation_id,))
+            conn.commit()
+
+        flash("Rotation deleted successfully", "success")
+        update_user_activity(
+            session['user_id'],
+            f"Deleted rotation ID {rotation_id}"
+        )
+        return redirect(url_for('manage_rotations'))
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('manage_rotations'))
 
 
 @app.route('/employee_details', methods=['GET', 'POST'])
@@ -1566,51 +2549,103 @@ def update_employee(employee_id):
 
     if request.method == 'POST':
         try:
-            employee_data = _process_employee_form(request.form, request.files, employee_id, is_update=True)
+            # Handle photo upload
+            new_photo_path = employee.get('PhotoPath')
+            if 'photo' in request.files:
+                photo_file = request.files['photo']
+                if photo_file.filename:  # User selected a new file
+                    # Delete old photo first
+                    delete_old_photo(employee.get('PhotoPath'))
+                    # Save new photo
+                    new_photo_path = save_employee_photo(photo_file, employee_id)
 
-            # Only update UpdatedBy and UpdatedAt fields, leave CreatedBy/CreatedAt unchanged
-            employee_data.update({
+            # Process date fields
+            def parse_date(date_str):
+                return datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+
+            # Update employee data with all fields
+            update_data = {
+                'EmployeeId': employee_id,
+                'FirstName': request.form['first_name'],
+                'MiddleName': request.form.get('middle_name'),
+                'LastName': request.form['last_name'],
+                'DisplayName': f"{request.form['first_name']} {request.form['last_name']}",
+                'FullNameArabic': request.form.get('full_name_arabic'),
+                'EmploymentType': request.form['employment_type'],
+                'Nationality': request.form['nationality'],
+                'NationalityArabic': request.form.get('nationality_arabic'),
+                'PassportNumber': request.form['passport_number'],
+                'Designation': request.form['designation'],
+                'DesignationArabic': request.form.get('designation_arabic'),
+                'Company': request.form['company'],
+                'CompanyArabic': request.form.get('company_arabic'),
+                'PhotoPath': new_photo_path,
+                'FieldOfAssignment': request.form['field_of_assignment'],
+                'FieldSite': request.form['field_site'],
+                'Rotation': request.form['rotation'],
+                'Birthday': parse_date(request.form['birthday']),
+                'EmailAddress': request.form.get('email_address'),
+                'ContactNumber': request.form['contact_number'],
+                'Rate': float(request.form['rate']),
+                'RateDescription': request.form['rate_description'],
+                'ArrivalDate': parse_date(request.form['arrival_date']),
+                'StartedDate': parse_date(request.form['started_date']),
+                'Retired': request.form.get('retired', 'No'),
+                'Status': request.form['status'],
+                'DesertPassNumber': request.form.get('desert_pass_number'),
+                'DesertPassIssuedDate': parse_date(request.form.get('desert_pass_issued_date')),
+                'DesertPassExpiryDate': parse_date(request.form.get('desert_pass_expiry_date')),
+                'BusinessVisaNumber': request.form.get('business_visa_number'),
+                'BusinessVisaIssuedDate': parse_date(request.form.get('business_visa_issued_date')),
+                'BusinessVisaExpiryDate': parse_date(request.form.get('business_visa_expiry_date')),
+                'ResidenceVisaNumber': request.form.get('residence_visa_number'),
+                'ResidenceVisaIssuedDate': parse_date(request.form.get('residence_visa_issued_date')),
+                'ResidenceVisaExpiryDate': parse_date(request.form.get('residence_visa_expiry_date')),
+                'PassportIssuedDate': parse_date(request.form.get('passport_issued_date')),
+                'PassportExpiryDate': parse_date(request.form.get('passport_expiry_date')),
+                'AccountName': request.form.get('account_name'),
+                'AccountNumber': request.form.get('account_number'),
+                'IBAN': request.form.get('iban'),
+                'SwiftCode': request.form.get('swift_code'),
+                'BankName': request.form.get('bank_name'),
+                'BankAddress': request.form.get('bank_address'),
+                'EmergencyContactName': request.form.get('emergency_contact_name'),
+                'EmergencyContactRelationship': request.form.get('emergency_contact_relationship'),
+                'EmergencyContactNumber': request.form.get('emergency_contact_number'),
+                'EmergencyContactEmail': request.form.get('emergency_contact_email'),
                 'UpdatedBy': session['username'],
                 'UpdatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            })
-
-            if not employee_data['PhotoPath']:
-                employee_data['PhotoPath'] = employee['PhotoPath']
-
-            # Handle document deletions (existing code remains the same)
-            # ...
+            }
 
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    UPDATE Employees SET 
-                        FirstName = :FirstName, 
-                        MiddleName = :MiddleName, 
+                    UPDATE Employees SET
+                        FirstName = :FirstName,
+                        MiddleName = :MiddleName,
                         LastName = :LastName,
-                        DisplayName = :DisplayName, 
+                        DisplayName = :DisplayName,
                         FullNameArabic = :FullNameArabic,
-                        EmploymentType = :EmploymentType, 
+                        EmploymentType = :EmploymentType,
                         Nationality = :Nationality,
-                        NationalityArabic = :NationalityArabic, 
+                        NationalityArabic = :NationalityArabic,
                         PassportNumber = :PassportNumber,
-                        Designation = :Designation, 
+                        Designation = :Designation,
                         DesignationArabic = :DesignationArabic,
-                        Company = :Company, 
-                        CompanyArabic = :CompanyArabic, 
+                        Company = :Company,
+                        CompanyArabic = :CompanyArabic,
                         PhotoPath = :PhotoPath,
-                        FieldOfAssignment = :FieldOfAssignment, 
+                        FieldOfAssignment = :FieldOfAssignment,
                         FieldSite = :FieldSite,
-                        Rotation = :Rotation, 
-                        Birthday = :Birthday, 
-                        Age = :Age,
-                        EmailAddress = :EmailAddress, 
+                        Rotation = :Rotation,
+                        Birthday = :Birthday,
+                        EmailAddress = :EmailAddress,
                         ContactNumber = :ContactNumber,
-                        Rate = :Rate, 
+                        Rate = :Rate,
                         RateDescription = :RateDescription,
-                        ArrivalDate = :ArrivalDate, 
+                        ArrivalDate = :ArrivalDate,
                         StartedDate = :StartedDate,
-                        Retired = :Retired, 
-                        RetirementDate = :RetirementDate, 
+                        Retired = :Retired,
                         Status = :Status,
                         DesertPassNumber = :DesertPassNumber,
                         DesertPassIssuedDate = :DesertPassIssuedDate,
@@ -1623,32 +2658,31 @@ def update_employee(employee_id):
                         ResidenceVisaExpiryDate = :ResidenceVisaExpiryDate,
                         PassportIssuedDate = :PassportIssuedDate,
                         PassportExpiryDate = :PassportExpiryDate,
-                        AccountName = :AccountName, 
+                        AccountName = :AccountName,
                         AccountNumber = :AccountNumber,
-                        IBAN = :IBAN, 
-                        SwiftCode = :SwiftCode, 
+                        IBAN = :IBAN,
+                        SwiftCode = :SwiftCode,
                         BankName = :BankName,
-                        BankAddress = :BankAddress, 
+                        BankAddress = :BankAddress,
                         EmergencyContactName = :EmergencyContactName,
                         EmergencyContactRelationship = :EmergencyContactRelationship,
                         EmergencyContactNumber = :EmergencyContactNumber,
                         EmergencyContactEmail = :EmergencyContactEmail,
-                        BusinessVisaFilePath = CASE WHEN :BusinessVisaFilePath IS NOT NULL THEN :BusinessVisaFilePath ELSE BusinessVisaFilePath END,
-                        ResidenceVisaFilePath = CASE WHEN :ResidenceVisaFilePath IS NOT NULL THEN :ResidenceVisaFilePath ELSE ResidenceVisaFilePath END,
-                        PassportFilePath = CASE WHEN :PassportFilePath IS NOT NULL THEN :PassportFilePath ELSE PassportFilePath END,
                         UpdatedBy = :UpdatedBy,
                         UpdatedAt = :UpdatedAt
                     WHERE EmployeeId = :EmployeeId
-                """, employee_data)
+                """, update_data)
                 conn.commit()
-                update_user_activity(session['user_id'], f"Updated employee: {employee_id}")
-                flash("Employee updated successfully!", "success")
-                return redirect(url_for('view_profile', employee_id=employee_id))
+
+            flash("Employee updated successfully!", "success")
+            return redirect(url_for('view_profile', employee_id=employee_id))
 
         except ValueError as e:
             flash(str(e), "danger")
         except sqlite3.Error as e:
             flash(f"Database error: {e}", "danger")
+        except Exception as e:
+            flash(f"Unexpected error: {str(e)}", "danger")
 
     return render_template('update_employee.html', employee=employee)
 
@@ -1656,11 +2690,43 @@ def update_employee(employee_id):
 @app.route('/list')
 @login_required
 def employee_list():
-    employees = get_all_employees()
-    # Extract unique companies from employees
-    companies = list({emp['Company'] for emp in employees if emp.get('Company')})
-    update_user_activity(session['user_id'], "Viewed employee list")
-    return render_template('employee_list.html', employees=employees, companies=companies)
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 25  # Number of employees per page
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get total count of employees
+            cursor.execute("SELECT COUNT(*) FROM Employees")
+            total = cursor.fetchone()[0]
+
+            # Get paginated employees
+            cursor.execute("SELECT * FROM Employees LIMIT ? OFFSET ?",
+                         (per_page, (page - 1) * per_page))
+            employees = [dict(row) for row in cursor.fetchall()]
+
+            # Create pagination object
+            pagination = Pagination(
+                page=page,
+                per_page=per_page,
+                total=total,
+                items=employees
+            )
+
+            # Extract unique companies for filter dropdown
+            cursor.execute("SELECT DISTINCT Company FROM Employees WHERE Company IS NOT NULL ORDER BY Company")
+            companies = [row['Company'] for row in cursor.fetchall()]
+
+            update_user_activity(session['user_id'], "Viewed employee list")
+            return render_template('employee_list.html',
+                                employees=employees,
+                                companies=companies,
+                                pagination=pagination)
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('main_menu'))
 
 
 @app.route('/delete_employee/<employee_id>', methods=['POST'])
@@ -1701,15 +2767,26 @@ def view_profile(employee_id):
         flash("Employee not found.", "danger")
         return redirect(url_for('employee_list'))
 
-    # Check if files exist
-    for file_field in ['PhotoPath', 'BusinessVisaFilePath', 'ResidenceVisaFilePath', 'PassportFilePath']:
-        if employee[file_field]:
-            full_path = os.path.join(app.static_folder, employee[file_field])
-            if not os.path.exists(full_path):
-                employee[file_field] = None
+    # Convert to dict if not already
+    if not isinstance(employee, dict):
+        employee = dict(employee)
+
+    # Verify photo exists
+    if employee.get('PhotoPath'):
+        if getattr(sys, 'frozen', False):
+            full_path = os.path.join(os.path.dirname(sys.executable), 'static', employee['PhotoPath'])
+        else:
+            full_path = os.path.join(app.static_folder, employee['PhotoPath'])
+
+        if not os.path.exists(full_path):
+            app.logger.warning(f"Missing photo for employee {employee_id}")
+            employee['PhotoPath'] = None
 
     update_user_activity(session['user_id'], f"Viewed profile for employee: {employee_id}")
-    return render_template('employee_profile.html', employee=employee)
+    return render_template('employee_profile.html',
+                         employee=employee,
+                         is_exe=getattr(sys, 'frozen', False))
+
 
 # Flight Management Routes
 @app.route('/flights')
@@ -1750,11 +2827,13 @@ def view_flights():
         flash(f"Database error: {e}", "danger")
         return redirect(url_for('main_menu'))
 
+
 @app.context_processor
 def inject_trial_status():
     return {
         'trial_status': get_trial_status()
     }
+
 
 @app.route('/flights/calendar')
 @app.route('/flights/calendar/<int:year>/<int:month>')
@@ -2056,6 +3135,33 @@ def view_flight_details(flight_id):
         return redirect(url_for('view_flights'))
 
 
+@app.route('/admin/cleanup_photos')
+@admin_required
+def cleanup_photos():
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT EmployeeId, PhotoPath FROM Employees WHERE PhotoPath IS NOT NULL")
+            fixed_count = 0
+
+            for row in cursor.fetchall():
+                if not check_file_exists(row['PhotoPath']):
+                    app.logger.warning(f"Missing photo for employee {row['EmployeeId']} at {row['PhotoPath']}")
+                    cursor.execute("UPDATE Employees SET PhotoPath = NULL WHERE EmployeeId = ?", (row['EmployeeId'],))
+                    fixed_count += 1
+
+            conn.commit()
+            flash(f"Cleaned up {fixed_count} invalid photo references", "success")
+
+    except Exception as e:
+        flash(f"Error during photo cleanup: {str(e)}", "danger")
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.context_processor
+def utility_processor():
+    return dict(check_file_exists=check_file_exists)
+
 @app.route('/flights/edit/<int:flight_id>', methods=['GET', 'POST'])
 @login_required
 def edit_flight(flight_id):
@@ -2133,7 +3239,7 @@ def edit_flight(flight_id):
                         file.save(file_path)
                         new_ticket_document = f"ticket_docs/{filename}"
 
-                        # Delete old file if it exists (only after new file is successfully saved)
+                        # Delete an old file if it exists (only after a new file is successfully saved)
                         if current_ticket_document:
                             try:
                                 os.remove(os.path.join(app.static_folder, current_ticket_document))
@@ -2254,28 +3360,40 @@ def edit_flight(flight_id):
 
 
 # Update your existing ticket_document route to force download
-@app.route('/ticket_docs/<path:filename>')
+@app.route('/ticket_docs/<filename>')
 @login_required
 def ticket_document(filename):
     try:
-        # Secure the filename to prevent directory traversal
         safe_filename = secure_filename(filename)
         if not safe_filename:
             abort(404)
 
-        # Check if file exists
-        filepath = os.path.join(app.config['TICKET_DOCS_FOLDER'], safe_filename)
-        if not os.path.exists(filepath):
+        # Verify the file exists
+        file_path = os.path.join(app.config['TICKET_DOCS_FOLDER'], safe_filename)
+        if not os.path.exists(file_path):
+            app.logger.error(f"Ticket file not found: {file_path}")
             abort(404)
+
+        # Determine content type
+        ext = os.path.splitext(safe_filename)[1].lower()
+        mimetype = {
+            '.pdf': 'application/pdf',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png'
+        }.get(ext, 'application/octet-stream')
 
         return send_from_directory(
             app.config['TICKET_DOCS_FOLDER'],
             safe_filename,
-            as_attachment=True
+            mimetype=mimetype,
+            as_attachment=request.args.get('download', type=bool, default=False)
         )
     except Exception as e:
-        app.logger.error(f"Error downloading ticket: {str(e)}")
+        app.logger.error(f"Error serving ticket document: {str(e)}")
         abort(404)
+
+
 # Add this route to your Python code
 @app.route('/reports/flight_records', methods=['GET', 'POST'])
 @login_required
@@ -2460,6 +3578,146 @@ def view_ticket(filename):
         abort(404)
 
 
+@app.route('/rotations/reports', methods=['GET', 'POST'])
+@login_required
+def rotation_reports():
+    try:
+        # Default filters
+        employee_filter = request.args.get('employee_filter', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        company_filter = request.args.get('company_filter', '')
+        travel_to_filter = request.args.get('travel_to_filter', '')
+        travel_from_filter = request.args.get('travel_from_filter', '')
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get all employees for dropdown
+            cursor.execute("SELECT EmployeeId, DisplayName FROM Employees ORDER BY DisplayName")
+            employees = cursor.fetchall()
+
+            # Get all companies for dropdown
+            cursor.execute("SELECT DISTINCT Company FROM Employees WHERE Company IS NOT NULL ORDER BY Company")
+            companies = [row['Company'] for row in cursor.fetchall()]
+
+            # Get all travel locations for dropdowns
+            cursor.execute(
+                "SELECT DISTINCT travel_to FROM EmployeeRotations WHERE travel_to IS NOT NULL ORDER BY travel_to")
+            travel_tos = [row['travel_to'] for row in cursor.fetchall()]
+
+            cursor.execute(
+                "SELECT DISTINCT travel_from FROM EmployeeRotations WHERE travel_from IS NOT NULL ORDER BY travel_from")
+            travel_froms = [row['travel_from'] for row in cursor.fetchall()]
+
+            # Build query for filtered rotations with employee details
+            query = """
+                SELECT 
+                    r.*, 
+                    e.DisplayName as employee_name,
+                    e.Company as company,
+                    e.Designation as designation,
+                    u1.username as created_by_name,
+                    u2.username as updated_by_name
+                FROM EmployeeRotations r
+                JOIN Employees e ON r.employee_id = e.EmployeeId
+                LEFT JOIN Users u1 ON r.created_by = u1.id
+                LEFT JOIN Users u2 ON r.updated_by = u2.id
+                WHERE 1=1
+            """
+            params = []
+
+            if employee_filter:
+                query += " AND r.employee_id = ?"
+                params.append(employee_filter)
+
+            if company_filter:
+                query += " AND e.Company = ?"
+                params.append(company_filter)
+
+            if travel_to_filter:
+                query += " AND r.travel_to = ?"
+                params.append(travel_to_filter)
+
+            if travel_from_filter:
+                query += " AND r.travel_from = ?"
+                params.append(travel_from_filter)
+
+            if date_from:
+                query += " AND r.end_date >= ?"
+                params.append(date_from)
+
+            if date_to:
+                query += " AND r.start_date <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY r.start_date DESC"
+
+            cursor.execute(query, params)
+            rotations = [dict(row) for row in cursor.fetchall()]
+
+            # Handle export requests
+            if 'export' in request.form:
+                output = io.StringIO()
+                writer = csv.writer(output)
+
+                # Write header
+                writer.writerow([
+                    'Employee ID', 'Employee Name', 'Company', 'Designation',
+                    'Start Date', 'End Date', 'Duration (days)',
+                    'Travel To', 'Travel From', 'Status',
+                    'Created By', 'Created At', 'Updated By', 'Updated At'
+                ])
+
+                # Write data
+                for rotation in rotations:
+                    writer.writerow([
+                        rotation['employee_id'],
+                        rotation['employee_name'],
+                        rotation['company'],
+                        rotation['designation'],
+                        rotation['start_date'],
+                        rotation['end_date'],
+                        rotation['rotation_days'],
+                        rotation['travel_to'],
+                        rotation['travel_from'],
+                        rotation['status'],
+                        rotation['created_by_name'] or rotation['created_by'],
+                        rotation['created_at'],
+                        rotation['updated_by_name'] or rotation['updated_by'],
+                        rotation['updated_at']
+                    ])
+
+                output.seek(0)
+
+                update_user_activity(session['user_id'], "Exported rotation report to CSV")
+                return Response(
+                    output,
+                    mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment;filename=rotation_report.csv"}
+                )
+
+            update_user_activity(session['user_id'], "Viewed rotation reports")
+            return render_template('rotations/rotation_reports.html',
+                                   rotations=rotations,
+                                   employees=employees,
+                                   companies=companies,
+                                   travel_tos=travel_tos,
+                                   travel_froms=travel_froms,
+                                   filters={
+                                       'employee_filter': employee_filter,
+                                       'company_filter': company_filter,
+                                       'travel_to_filter': travel_to_filter,
+                                       'travel_from_filter': travel_from_filter,
+                                       'date_from': date_from,
+                                       'date_to': date_to
+                                   },
+                                   now=datetime.now())
+
+    except sqlite3.Error as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('main_menu'))
+
 
 @app.route('/trips/new', methods=['GET', 'POST'])
 @login_required
@@ -2480,7 +3738,6 @@ def new_trip():
                     ticket_document = f"ticket_docs/{filename}"
                 else:
                     flash("Invalid file type for ticket document. Allowed: pdf, png, jpg, jpeg", "warning")
-
 
             # Get basic flight details
             company_flight_ref = request.form['company_flight_ref']
@@ -2553,18 +3810,22 @@ def new_trip():
                 ))
                 conn.commit()
 
-
             flash("Flight details saved successfully!", "success")
             return redirect(url_for('view_flights'))
 
         except Exception as e:
             flash(f"Error saving flight details: {str(e)}", "danger")
 
-    # For GET request, get list of employees for passenger dropdown
+    # For GET request, get list of ACTIVE employees for passenger dropdown
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT EmployeeId, DisplayName FROM Employees ORDER BY DisplayName")
+            cursor.execute("""
+                SELECT EmployeeId, DisplayName 
+                FROM Employees 
+                WHERE Status = 'Active'
+                ORDER BY DisplayName
+            """)
             employees = cursor.fetchall()
 
         return render_template('flights/new_trip.html', employees=employees)
@@ -2600,6 +3861,7 @@ def delete_flight(flight_id):
         return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
+
 
 @app.route('/search_profile', methods=['GET', 'POST'])
 @login_required
@@ -2793,6 +4055,18 @@ def is_expired(date_str):
         return expiry_date < date.today()
     except ValueError:
         return False
+
+
+@app.template_filter('initials')
+def initials_filter(name):
+    if not name:
+        return ""
+    parts = name.split()
+    if len(parts) >= 2:
+        return parts[0][0].upper() + parts[-1][0].upper()
+    elif len(parts) == 1:
+        return parts[0][0].upper()
+    return ""
 
 
 @app.route('/calendar')
@@ -3148,13 +4422,51 @@ def uploaded_file(filename):
 
 
 @app.route('/visa_docs/<filename>')
+@login_required
 def visa_document(filename):
-    return send_from_directory(app.config['VISA_DOCS_FOLDER'], filename)
+    try:
+        safe_filename = secure_filename(filename)
+        if not safe_filename:
+            abort(404)
+
+        # Verify the file exists
+        file_path = os.path.join(app.config['VISA_DOCS_FOLDER'], safe_filename)
+        if not os.path.exists(file_path):
+            app.logger.error(f"Visa file not found: {file_path}")
+            abort(404)
+
+        return send_from_directory(
+            app.config['VISA_DOCS_FOLDER'],
+            safe_filename,
+            as_attachment=request.args.get('download', type=bool, default=False)
+        )
+    except Exception as e:
+        app.logger.error(f"Error serving visa document: {str(e)}")
+        abort(404)
 
 
 @app.route('/passport_docs/<filename>')
+@login_required
 def passport_document(filename):
-    return send_from_directory(app.config['PASSPORT_DOCS_FOLDER'], filename)
+    try:
+        safe_filename = secure_filename(filename)
+        if not safe_filename:
+            abort(404)
+
+        # Verify the file exists
+        file_path = os.path.join(app.config['PASSPORT_DOCS_FOLDER'], safe_filename)
+        if not os.path.exists(file_path):
+            app.logger.error(f"Passport file not found: {file_path}")
+            abort(404)
+
+        return send_from_directory(
+            app.config['PASSPORT_DOCS_FOLDER'],
+            safe_filename,
+            as_attachment=request.args.get('download', type=bool, default=False)
+        )
+    except Exception as e:
+        app.logger.error(f"Error serving passport document: {str(e)}")
+        abort(404)
 
 
 @app.template_filter('days_until_expiry')
@@ -3212,7 +4524,16 @@ if __name__ == '__main__':
         init_db()
 
         # Run the app
-        app.run(host="0.0.0.0", port=8000, debug=True)
+        app.run(host="0.0.0.0", port=8000, debug=False)
+        #open login in browser when opening the application
+        webbrowser.open_new_tab("http://127.0.0.1:8000/login")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        sys.exit(1)
+    except OSError as e:
+        print(f"OS error: {e}")
+        sys.exit(1)
+
     except Exception as e:
         print(f"Failed to start application: {e}")
         sys.exit(1)
