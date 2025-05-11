@@ -1,0 +1,1193 @@
+{% extends "base.html" %}
+
+{% block title %}Update Employee - {{ employee.DisplayName }}{% endblock %}
+
+{% block page_title %}Update Employee - {{ employee.DisplayName }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --accent-color: #e74c3c;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --light-bg: #f8f9fa;
+        --dark-text: #2c3e50;
+        --border-radius: 8px;
+        --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    .update-container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #eee;
+    }
+
+    .form-header h2 {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-header p {
+        color: #7f8c8d;
+        margin-bottom: 0;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f9f9f9;
+        border-radius: var(--border-radius);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .section-title {
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .section-title i {
+        margin-right: 0.75rem;
+        color: var(--primary-color);
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--secondary-color);
+    }
+
+    .required-field::after {
+        content: " *";
+        color: var(--accent-color);
+    }
+
+    .form-control, .form-select {
+        border-radius: var(--border-radius);
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        transition: var(--transition);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+
+    .photo-upload {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .photo-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #eee;
+        margin-bottom: 1rem;
+        background-color: #f5f5f5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .photo-preview i {
+        font-size: 3rem;
+        color: #ccc;
+    }
+
+    .photo-upload-btn {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+
+    .photo-upload-btn input[type="file"] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .btn-submit {
+        background-color: var(--success-color);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: var(--transition);
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .btn-submit:hover {
+        background-color: #27ae60;
+        transform: translateY(-2px);
+    }
+
+    .btn-reset {
+        background-color: var(--warning-color);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: var(--transition);
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-reset:hover {
+        background-color: #e67e22;
+        transform: translateY(-2px);
+    }
+
+    .btn-back {
+        background-color: var(--secondary-color);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: var(--transition);
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-back:hover {
+        background-color: #1a252f;
+        transform: translateY(-2px);
+    }
+
+    .form-text {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+    }
+
+    .is-invalid {
+        border-color: var(--accent-color);
+    }
+
+    .invalid-feedback {
+        color: var(--accent-color);
+        font-size: 0.85rem;
+    }
+
+    .progress-container {
+        display: none;
+        margin-top: 1rem;
+    }
+
+    .progress-bar {
+        transition: width 0.3s ease;
+    }
+
+    .document-upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+        transition: var(--transition);
+    }
+    
+    .document-upload-area:hover {
+        border-color: var(--primary-color);
+        background-color: #e9f5ff;
+    }
+    
+    .document-upload-area i {
+        font-size: 2rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .document-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .document-icon {
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+    }
+
+    .document-expiry {
+        font-size: 0.8rem;
+        color: #7f8c8d;
+        margin-left: 1.5rem;
+    }
+
+    .expired {
+        color: var(--accent-color);
+    }
+
+    .valid {
+        color: var(--success-color);
+    }
+
+    .current-document {
+        background-color: #f0f8ff;
+        padding: 0.75rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .current-document a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .current-document a:hover {
+        text-decoration: underline;
+    }
+
+    .delete-document-btn {
+        background-color: var(--accent-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .delete-document-btn:hover {
+        background-color: #c0392b;
+    }
+
+    .date-input-group {
+        position: relative;
+    }
+    
+    .date-input-group .form-control {
+        padding-right: 2.5rem;
+    }
+    
+    .date-input-group i {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+        .update-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        
+        .form-section {
+            padding: 1rem;
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.4);
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+    }
+
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+    
+    #fieldBasedSection {
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="update-container fade-in">
+    <div class="form-header">
+        <h2><i class="fas fa-user-edit me-2"></i>Update Employee</h2>
+        <p>Update the details for {{ employee.DisplayName }}</p>
+    </div>
+
+    <form id="updateEmployeeForm" method="post" enctype="multipart/form-data" novalidate>
+        <!-- CSRF Token Field -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Personal Information Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.1s">
+            <h5 class="section-title"><i class="fas fa-user-circle"></i> Personal Information</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <!-- In the photo upload section -->
+<div class="photo-upload">
+    <div class="photo-preview" id="photoPreview">
+        {% if employee.PhotoPath %}
+            <img src="{{ url_for('static', filename=employee.PhotoPath) }}" 
+                 style="width: 100%; height: 100%; object-fit: cover;" 
+                 onerror="this.onerror=null;this.src='#';this.parentElement.innerHTML='<i class=\"fas fa-user\"></i>
+        {% else %}
+            <i class="fas fa-user"></i>
+        {% endif %}
+    </div>
+    <div class="photo-upload-btn btn btn-primary">
+        <span><i class="fas fa-camera me-2"></i>Change Photo</span>
+        <input type="file" id="photo" name="photo" accept="image/*" onchange="previewPhoto(this)">
+    </div>
+    <div class="form-text">Max file size: 2MB (JPG, PNG)</div>
+</div>
+                </div>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="employee_id" class="form-label required-field">Employee ID</label>
+                            <input type="text" class="form-control" id="employee_id" name="employee_id" 
+                                   value="{{ employee.EmployeeId }}" readonly>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="first_name" class="form-label required-field">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                   value="{{ employee.FirstName }}" required>
+                            <div class="invalid-feedback">Please provide a first name.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="middle_name" class="form-label">Middle Name</label>
+                            <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                   value="{{ employee.MiddleName if employee.MiddleName else '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label required-field">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                   value="{{ employee.LastName }}" required>
+                            <div class="invalid-feedback">Please provide a last name.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name_arabic" class="form-label">Full Name (Arabic)</label>
+                            <input type="text" class="form-control" id="full_name_arabic" name="full_name_arabic" 
+                                   value="{{ employee.FullNameArabic if employee.FullNameArabic else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employment Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.2s">
+            <h5 class="section-title"><i class="fas fa-briefcase"></i> Employment Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="employment_type" class="form-label required-field">Employment Type</label>
+                    <select class="form-select" id="employment_type" name="employment_type" required>
+                        <option value="Expat" {% if employee.EmploymentType == 'Expat' %}selected{% endif %}>Expat</option>
+                        <option value="Local" {% if employee.EmploymentType == 'Local' %}selected{% endif %}>Local</option>
+                    </select>
+                    <div class="invalid-feedback">Please select employment type.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="designation" class="form-label required-field">Designation</label>
+                    <input type="text" class="form-control" id="designation" name="designation" 
+                           value="{{ employee.Designation }}" required>
+                    <div class="invalid-feedback">Please provide a designation.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="designation_arabic" class="form-label">Designation (Arabic)</label>
+                    <input type="text" class="form-control" id="designation_arabic" name="designation_arabic" 
+                           value="{{ employee.DesignationArabic if employee.DesignationArabic else '' }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="company" class="form-label required-field">Company</label>
+                    <input type="text" class="form-control" id="company" name="company" 
+                           value="{{ employee.Company }}" required>
+                    <div class="invalid-feedback">Please provide company name.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="company_arabic" class="form-label">Company (Arabic)</label>
+                    <input type="text" class="form-control" id="company_arabic" name="company_arabic" 
+                           value="{{ employee.CompanyArabic if employee.CompanyArabic else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="field_of_assignment" class="form-label required-field">Field of Assignment</label>
+                    <input type="text" class="form-control" id="field_of_assignment" name="field_of_assignment" 
+                           value="{{ employee.FieldOfAssignment }}" required>
+                    <div class="invalid-feedback">Please provide field of assignment.</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="field_site" class="form-label required-field">Field Site</label>
+                    <select class="form-select" id="field_site" name="field_site" required>
+                        <option value="Office Based" {% if employee.FieldSite == 'Office Based' %}selected{% endif %}>Office Based</option>
+                        <option value="Tripoli Based" {% if employee.FieldSite == 'Tripoli Based' %}selected{% endif %}>Tripoli Based</option>
+                        <option value="Field Based" {% if employee.FieldSite == 'Field Based' %}selected{% endif %}>Field Based</option>
+                        <option value="Remote" {% if employee.FieldSite == 'Remote' %}selected{% endif %}>Remote</option>
+                    </select>
+                    <div class="invalid-feedback">Please select field site.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="rotation" class="form-label required-field">Rotation</label>
+                    <input type="text" class="form-control" id="rotation" name="rotation" 
+                           value="{{ employee.Rotation }}" required>
+                    <div class="invalid-feedback">Please provide rotation details.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="status" class="form-label required-field">Status</label>
+                    <select class="form-select" id="status" name="status" required>
+                        <option value="Active" {% if employee.Status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if employee.Status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="On Leave" {% if employee.Status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                        <option value="On Process" {% if employee.Status == 'On Process' %}selected{% endif %}>On Process</option>
+                    </select>
+                    <div class="invalid-feedback">Please select employee status.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Personal Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.3s">
+            <h5 class="section-title"><i class="fas fa-id-card"></i> Personal Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="nationality" class="form-label required-field">Nationality</label>
+                    <input type="text" class="form-control" id="nationality" name="nationality" 
+                           value="{{ employee.Nationality }}" required>
+                    <div class="invalid-feedback">Please provide nationality.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="nationality_arabic" class="form-label">Nationality (Arabic)</label>
+                    <input type="text" class="form-control" id="nationality_arabic" name="nationality_arabic" 
+                           value="{{ employee.NationalityArabic if employee.NationalityArabic else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="birthday" class="form-label required-field">Birthday</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="birthday" name="birthday" 
+                               value="{{ employee.Birthday }}" required>
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="invalid-feedback">Please provide valid birthday.</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="email_address" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email_address" name="email_address" 
+                           value="{{ employee.EmailAddress if employee.EmailAddress else '' }}">
+                    <div class="invalid-feedback">Please provide valid email address.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="contact_number" class="form-label required-field">Contact Number</label>
+                    <input type="tel" class="form-control" id="contact_number" name="contact_number" 
+                           value="{{ employee.ContactNumber }}" required>
+                    <div class="invalid-feedback">Please provide contact number.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contract Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.4s">
+            <h5 class="section-title"><i class="fas fa-file-contract"></i> Contract Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="rate" class="form-label required-field">Rate</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="rate" name="rate" step="0.01" min="0" 
+                               value="{{ employee.Rate }}" required>
+                    </div>
+                    <div class="invalid-feedback">Please provide valid rate.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="rate_description" class="form-label required-field">Rate Description</label>
+                    <input type="text" class="form-control" id="rate_description" name="rate_description" 
+                           value="{{ employee.RateDescription }}" required>
+                    <div class="invalid-feedback">Please provide rate description.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="retired" class="form-label required-field">Retired</label>
+                    <select class="form-select" id="retired" name="retired" required>
+                        <option value="Yes" {% if employee.Retired == 'Yes' %}selected{% endif %}>Yes</option>
+                        <option value="No" {% if employee.Retired == 'No' %}selected{% endif %}>No</option>
+                    </select>
+                    <div class="invalid-feedback">Please select retirement status.</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3" id="retirementDateContainer" 
+                     style="display: {% if employee.Retired == 'Yes' %}block{% else %}none{% endif %};">
+                    <label for="retirement_date" class="form-label">Retirement Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="retirement_date" name="retirement_date" 
+                               value="{{ employee.RetirementDate if employee.RetirementDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="arrival_date" class="form-label required-field">Arrival Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="arrival_date" name="arrival_date" 
+                               value="{{ employee.ArrivalDate }}" required>
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="invalid-feedback">Please provide arrival date.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="started_date" class="form-label required-field">Started Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="started_date" name="started_date" 
+                               value="{{ employee.StartedDate }}" required>
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="invalid-feedback">Please provide started date.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Field Employee Details Section (conditionally shown) -->
+        <div class="form-section fade-in" style="animation-delay: 0.5s" id="fieldBasedSection" 
+             style="display: {% if employee.FieldSite == 'Field Based' %}block{% else %}none{% endif %};">
+            <h5 class="section-title"><i class="fas fa-map-marked-alt"></i> Field Employee Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="desert_pass_number" class="form-label">Desert Pass Number</label>
+                    <input type="text" class="form-control" id="desert_pass_number" name="desert_pass_number" 
+                           value="{{ employee.DesertPassNumber if employee.DesertPassNumber else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="desert_pass_issued_date" class="form-label">Desert Pass Issued Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="desert_pass_issued_date" name="desert_pass_issued_date" 
+                               value="{{ employee.DesertPassIssuedDate if employee.DesertPassIssuedDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="desert_pass_expiry_date" class="form-label">Desert Pass Expiry Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="desert_pass_expiry_date" name="desert_pass_expiry_date" 
+                               value="{{ employee.DesertPassExpiryDate if employee.DesertPassExpiryDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visa Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.6s">
+            <h5 class="section-title"><i class="fas fa-passport"></i> Visa Details</h5>
+            
+            <h6 class="mt-3 mb-3"><i class="fas fa-briefcase me-2"></i> Business Visa</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="business_visa_number" class="form-label required-field">Business Visa Number</label>
+					<input type="text" class="form-control" id="business_visa_number" name="business_visa_number" 
+						   value="{{ employee.BusinessVisaNumber if employee.BusinessVisaNumber else '' }}" required>
+					<div class="invalid-feedback">Please provide business visa number.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="business_visa_issued_date" class="form-label">Issued Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="business_visa_issued_date" name="business_visa_issued_date" 
+                               value="{{ employee.BusinessVisaIssuedDate if employee.BusinessVisaIssuedDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="business_visa_expiry_date" class="form-label">Expiry Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="business_visa_expiry_date" name="business_visa_expiry_date" 
+                               value="{{ employee.BusinessVisaExpiryDate if employee.BusinessVisaExpiryDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <!--<div class="col-md-12 mb-3">
+                    {% if employee.BusinessVisaFilePath %}
+                    <div class="current-document">
+                        <div>
+                            <i class="fas fa-file-pdf document-icon"></i>
+                            <a href="{{ url_for('static', filename=employee.BusinessVisaFilePath) }}" target="_blank">
+                                View Current Business Visa
+                            </a>
+                        </div>
+                        <button type="button" class="delete-document-btn" onclick="confirmDeleteDocument('business_visa')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    <div class="document-upload-area">
+                        <i class="fas fa-file-upload"></i>
+                        <h6>Upload Business Visa Document</h6>
+                        <p class="form-text">Supported formats: PDF, JPG, PNG (Max 5MB)</p>
+                        <input type="file" class="form-control" id="business_visa_file" name="business_visa_file" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>-->
+            </div>
+            
+            <h6 class="mt-3 mb-3"><i class="fas fa-home me-2"></i> Residence Visa</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="residence_visa_number" class="form-label required-field">Residence Visa Number</label>
+					<input type="text" class="form-control" id="residence_visa_number" name="residence_visa_number" 
+						   value="{{ employee.ResidenceVisaNumber if employee.ResidenceVisaNumber else '' }}" required>
+					<div class="invalid-feedback">Please provide residence visa number.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="residence_visa_issued_date" class="form-label">Issued Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="residence_visa_issued_date" name="residence_visa_issued_date" 
+                               value="{{ employee.ResidenceVisaIssuedDate if employee.ResidenceVisaIssuedDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="residence_visa_expiry_date" class="form-label">Expiry Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="residence_visa_expiry_date" name="residence_visa_expiry_date" 
+                               value="{{ employee.ResidenceVisaExpiryDate if employee.ResidenceVisaExpiryDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <!--<div class="col-md-12 mb-3">
+                    {% if employee.ResidenceVisaFilePath %}
+                    <div class="current-document">
+                        <div>
+                            <i class="fas fa-file-pdf document-icon"></i>
+                            <a href="{{ url_for('static', filename=employee.ResidenceVisaFilePath) }}" target="_blank">
+                                View Current Residence Visa
+                            </a>
+                        </div>
+                        <button type="button" class="delete-document-btn" onclick="confirmDeleteDocument('residence_visa')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    <div class="document-upload-area">
+                        <i class="fas fa-file-upload"></i>
+                        <h6>Upload Residence Visa Document</h6>
+                        <p class="form-text">Supported formats: PDF, JPG, PNG (Max 5MB)</p>
+                        <input type="file" class="form-control" id="residence_visa_file" name="residence_visa_file" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>-->
+            </div>
+        </div>
+
+        <!-- Passport Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.7s">
+            <h5 class="section-title"><i class="fas fa-id-card"></i> Passport Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="passport_number" class="form-label required-field">Passport Number</label>
+                    <input type="text" class="form-control" id="passport_number" name="passport_number" 
+                           value="{{ employee.PassportNumber }}" required>
+                    <div class="invalid-feedback">Please provide passport number.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="passport_issued_date" class="form-label">Issued Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="passport_issued_date" name="passport_issued_date" 
+                               value="{{ employee.PassportIssuedDate if employee.PassportIssuedDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="passport_expiry_date" class="form-label">Expiry Date</label>
+                    <div class="date-input-group">
+                        <input type="date" class="form-control" id="passport_expiry_date" name="passport_expiry_date" 
+                               value="{{ employee.PassportExpiryDate if employee.PassportExpiryDate else '' }}">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <!--<div class="col-md-12 mb-3">
+                    {% if employee.PassportFilePath %}
+                    <div class="current-document">
+                        <div>
+                            <i class="fas fa-file-pdf document-icon"></i>
+                            <a href="{{ url_for('static', filename=employee.PassportFilePath) }}" target="_blank">
+                                View Current Passport
+                            </a>
+                        </div>
+                        <button type="button" class="delete-document-btn" onclick="confirmDeleteDocument('passport')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    <div class="document-upload-area">
+                        <i class="fas fa-file-upload"></i>
+                        <h6>Upload Passport Document</h6>
+                        <p class="form-text">Supported formats: PDF, JPG, PNG (Max 5MB)</p>
+                        <input type="file" class="form-control" id="passport_file" name="passport_file" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>-->
+            </div>
+        </div>
+
+        <!-- Finance Details Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.8s">
+            <h5 class="section-title"><i class="fas fa-money-bill-wave"></i> Finance Details</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="account_name" class="form-label">Account Name</label>
+                    <input type="text" class="form-control" id="account_name" name="account_name" 
+                           value="{{ employee.AccountName if employee.AccountName else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="account_number" class="form-label">Account Number</label>
+                    <input type="text" class="form-control" id="account_number" name="account_number" 
+                           value="{{ employee.AccountNumber if employee.AccountNumber else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="iban" class="form-label">IBAN Number</label>
+                    <input type="text" class="form-control" id="iban" name="iban" 
+                           value="{{ employee.IBAN if employee.IBAN else '' }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="swift_code" class="form-label">Swift Code</label>
+                    <input type="text" class="form-control" id="swift_code" name="swift_code" 
+                           value="{{ employee.SwiftCode if employee.SwiftCode else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="bank_name" class="form-label">Bank Name</label>
+                    <input type="text" class="form-control" id="bank_name" name="bank_name" 
+                           value="{{ employee.BankName if employee.BankName else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="bank_address" class="form-label">Bank Address</label>
+                    <input type="text" class="form-control" id="bank_address" name="bank_address" 
+                           value="{{ employee.BankAddress if employee.BankAddress else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contact Section -->
+        <div class="form-section fade-in" style="animation-delay: 0.9s">
+            <h5 class="section-title"><i class="fas fa-phone-alt"></i> Emergency Contact</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="emergency_contact_name" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" 
+                           value="{{ employee.EmergencyContactName if employee.EmergencyContactName else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="emergency_contact_relationship" class="form-label">Relationship</label>
+                    <input type="text" class="form-control" id="emergency_contact_relationship" name="emergency_contact_relationship" 
+                           value="{{ employee.EmergencyContactRelationship if employee.EmergencyContactRelationship else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="emergency_contact_number" class="form-label">Contact Number</label>
+                    <input type="tel" class="form-control" id="emergency_contact_number" name="emergency_contact_number" 
+                           value="{{ employee.EmergencyContactNumber if employee.EmergencyContactNumber else '' }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="emergency_contact_email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="emergency_contact_email" name="emergency_contact_email" 
+                           value="{{ employee.EmergencyContactEmail if employee.EmergencyContactEmail else '' }}">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="row mt-4 fade-in" style="animation-delay: 0.5s">
+            <div class="col-md-4 mb-2">
+                <button type="submit" class="btn btn-submit" id="submitBtn">
+                    <i class="fas fa-save me-2"></i>Update Employee
+                </button>
+            </div>
+            <div class="col-md-4 mb-2">
+                <button type="reset" class="btn btn-reset">
+                    <i class="fas fa-undo me-2"></i>Reset Changes
+                </button>
+            </div>
+            <div class="col-md-4 mb-2">
+                <a href="{{ url_for('view_profile', employee_id=employee.EmployeeId) }}" class="btn btn-back">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </a>
+            </div>
+        </div>
+
+        <!-- Upload Progress (hidden by default) -->
+        <div class="progress-container mt-3" id="progressContainer">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%" id="progressBar"></div>
+            </div>
+            <div class="text-center mt-2" id="progressText">Uploading: 0%</div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        
+        // Fetch the form we want to apply validation to
+        const form = document.getElementById('updateEmployeeForm');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Add was-validated class to show validation messages
+                form.classList.add('was-validated');
+                
+                // Scroll to first invalid field
+                const firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+            } else {
+                // Show loading state
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').innerHTML = 
+                    '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...';
+                
+                // Show upload progress if there are files to upload
+                const hasFiles = Array.from(form.querySelectorAll('input[type="file"]')).some(input => input.files.length > 0);
+                if (hasFiles) {
+                    document.getElementById('progressContainer').style.display = 'block';
+                    simulateUploadProgress();
+                }
+            }
+        }, false);
+        
+        // Add real-time validation
+        const requiredFields = form.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+            field.addEventListener('input', function() {
+                if (this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+        
+        // Email validation
+        const emailField = document.getElementById('email_address');
+        if (emailField) {
+            emailField.addEventListener('input', function() {
+                if (this.value && !this.checkValidity()) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+        
+        // Date validation
+        const dateFields = ['birthday', 'arrival_date', 'started_date'];
+        dateFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('change', function() {
+                    if (this.value && !this.checkValidity()) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            }
+        });
+        
+        // Contact number formatting
+        const contactField = document.getElementById('contact_number');
+        if (contactField) {
+            contactField.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9+]/g, '');
+            });
+        }
+        
+        // Passport number formatting
+        const passportField = document.getElementById('passport_number');
+        if (passportField) {
+            passportField.addEventListener('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
+            });
+        }
+        
+        // Rate validation
+        const rateField = document.getElementById('rate');
+        if (rateField) {
+            rateField.addEventListener('input', function() {
+                if (this.value < 0) {
+                    this.setCustomValidity('Rate cannot be negative');
+                    this.classList.add('is-invalid');
+                } else {
+                    this.setCustomValidity('');
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+    })();
+    
+    // Photo preview
+    function previewPhoto(input) {
+        const preview = document.getElementById('photoPreview');
+        const file = input.files[0];
+        
+        if (file) {
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File Too Large',
+                    text: 'Please select an image smaller than 2MB',
+                });
+                input.value = '';
+                return;
+            }
+            
+            // Check file type
+            const validTypes = ['image/jpeg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Please upload a JPG or PNG image',
+                });
+                input.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    // Document upload validation
+    function validateDocumentUpload(input, maxSizeMB = 5) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            const maxSize = maxSizeMB * 1024 * 1024;
+            
+            if (!validTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Please upload a PDF, JPG, or PNG file',
+                });
+                input.value = '';
+                return false;
+            }
+            
+            if (file.size > maxSize) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File Too Large',
+                    text: `File size exceeds ${maxSizeMB}MB limit`,
+                });
+                input.value = '';
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Add event listeners for document uploads
+    document.getElementById('business_visa_file')?.addEventListener('change', function() {
+        validateDocumentUpload(this);
+    });
+    document.getElementById('residence_visa_file')?.addEventListener('change', function() {
+        validateDocumentUpload(this);
+    });
+    document.getElementById('passport_file')?.addEventListener('change', function() {
+        validateDocumentUpload(this);
+    });
+    
+    // Simulate upload progress (for demo)
+    function simulateUploadProgress() {
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        const interval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // After upload completes
+                setTimeout(() => {
+                    progressBar.style.width = '0%';
+                    progressText.textContent = 'Uploading: 0%';
+                    document.getElementById('progressContainer').style.display = 'none';
+                }, 1000);
+            }
+            
+            progressBar.style.width = progress + '%';
+            progressText.textContent = 'Uploading: ' + Math.round(progress) + '%';
+        }, 300);
+    }
+    
+    // Date validation - ensure started date is after arrival date
+    document.getElementById('arrival_date').addEventListener('change', validateDates);
+    document.getElementById('started_date').addEventListener('change', validateDates);
+    
+    function validateDates() {
+        const arrivalDate = new Date(document.getElementById('arrival_date').value);
+        const startedDate = new Date(document.getElementById('started_date').value);
+        
+        if (arrivalDate && startedDate && arrivalDate > startedDate) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Dates',
+                text: 'Started date must be after arrival date',
+            });
+            document.getElementById('started_date').value = '';
+        }
+    }
+    
+    // Show/hide Field Based section based on Field Site selection
+    document.getElementById('field_site').addEventListener('change', function() {
+        const fieldBasedSection = document.getElementById('fieldBasedSection');
+        if (this.value === 'Field Based') {
+            fieldBasedSection.style.display = 'block';
+        } else {
+            fieldBasedSection.style.display = 'none';
+            // Clear field based inputs when hidden
+            document.getElementById('desert_pass_number').value = '';
+            document.getElementById('desert_pass_issued_date').value = '';
+            document.getElementById('desert_pass_expiry_date').value = '';
+        }
+    });
+
+    // Retirement date handling
+    document.getElementById('retired').addEventListener('change', function() {
+        const retirementDateContainer = document.getElementById('retirementDateContainer');
+        const retirementDateField = document.getElementById('retirement_date');
+        
+        if (this.value === 'Yes') {
+            retirementDateContainer.style.display = 'block';
+            // Set current date as retirement date if empty
+            if (!retirementDateField.value) {
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0];
+                retirementDateField.value = formattedDate;
+            }
+        } else {
+            retirementDateContainer.style.display = 'none';
+            retirementDateField.value = '';
+        }
+    });
+
+    // Confirm document deletion
+    function confirmDeleteDocument(documentType) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Add a hidden input to indicate which document to delete
+                const form = document.getElementById('updateEmployeeForm');
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_' + documentType;
+                input.value = '1';
+                form.appendChild(input);
+                
+                // Submit the form
+                form.submit();
+            }
+        });
+    }
+
+    // Add ripple effect to buttons
+    document.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+	
+	// Add visa number fields to real-time validation
+const visaFields = ['business_visa_number', 'residence_visa_number'];
+visaFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.addEventListener('input', function() {
+            if (this.checkValidity()) {
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

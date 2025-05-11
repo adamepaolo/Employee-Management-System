@@ -1,0 +1,951 @@
+{% extends "base.html" %}
+
+{% block title %}Main Menu{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3a0ca3;
+        --accent-color: #f72585;
+        --success-color: #4cc9f0;
+        --flight-color: #4895ef;
+        --admin-color: #7209b7;
+        --developer-color: #560bad;
+        --rotation-color: #3f37c9;
+        --report-color: #4895ef;
+        --light-bg: #f8f9fa;
+        --dark-text: #2b2d42;
+        --light-text: #f8f9fa;
+        --card-bg: #ffffff;
+        --border-radius: 16px;
+        --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .main-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .app-card {
+        width: 100%;
+        max-width: 1400px;
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin: 0 auto;
+        padding: 3rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .app-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        position: relative;
+    }
+
+    .app-title {
+        font-weight: 800;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+        font-size: 2.8rem;
+        position: relative;
+        display: inline-block;
+        background: linear-gradient(90deg, #4361ee, #3a0ca3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.5px;
+    }
+
+    .app-title:after {
+        content: '';
+        position: absolute;
+        width: 80px;
+        height: 5px;
+        background: linear-gradient(90deg, #4361ee, #3a0ca3);
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 5px;
+    }
+
+    .app-subtitle {
+        color: #6c757d;
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .user-welcome {
+        background: linear-gradient(135deg, #3a0ca3 0%, #4361ee 100%);
+        color: white;
+        padding: 1.2rem 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 10px 20px rgba(58, 12, 163, 0.2);
+        transition: var(--transition);
+    }
+
+    .user-welcome:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(58, 12, 163, 0.3);
+    }
+
+    .user-welcome .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-welcome .user-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .user-welcome .user-details {
+        line-height: 1.4;
+    }
+
+    .user-welcome .user-name {
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .user-welcome .user-role {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.3rem;
+    }
+
+    .user-welcome .btn-logout {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: white;
+        padding: 0.7rem 1.5rem;
+        border-radius: 50px;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .user-welcome .btn-logout:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-admin {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .badge-developer {
+        background: linear-gradient(90deg, #f72585, #b5179e);
+        color: white;
+    }
+
+    .nav-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        width: 100%;
+    }
+
+    .section-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.8rem;
+        transition: var(--transition);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .section-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .section-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark-text);
+        margin-bottom: 1.8rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 3px solid;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .section-header i {
+        font-size: 1.8rem;
+    }
+
+    /* Section-specific colors */
+    .employee-section .section-header {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .flight-section .section-header {
+        border-color: var(--flight-color);
+        color: var(--flight-color);
+    }
+
+    .rotation-section .section-header {
+        border-color: var(--rotation-color);
+        color: var(--rotation-color);
+    }
+
+    .report-section .section-header {
+        border-color: var(--report-color);
+        color: var(--report-color);
+    }
+
+    .admin-section .section-header {
+        border-color: var(--admin-color);
+        color: var(--admin-color);
+    }
+
+    .developer-section .section-header {
+        border-color: var(--developer-color);
+        color: var(--developer-color);
+    }
+
+    .nav-btn {
+        display: flex;
+        align-items: center;
+        padding: 1.2rem;
+        border-radius: 12px;
+        color: var(--dark-text);
+        text-decoration: none;
+        transition: var(--transition);
+        margin-bottom: 1rem;
+        background: var(--light-bg);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nav-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: transparent;
+        transition: var(--transition);
+    }
+
+    .nav-btn:hover {
+        transform: translateX(8px);
+        color: white;
+    }
+
+    .nav-btn:hover::before {
+        width: 100%;
+        opacity: 0.2;
+    }
+
+    .nav-btn i {
+        font-size: 1.6rem;
+        margin-right: 1.2rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .nav-btn:hover i {
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .btn-text {
+        font-weight: 600;
+        flex-grow: 1;
+        transition: var(--transition);
+    }
+
+    .btn-desc {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-top: 0.3rem;
+        transition: var(--transition);
+    }
+
+    .nav-btn:hover .btn-desc {
+        opacity: 0.9;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Button color schemes */
+    .btn-employee {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-employee:hover {
+        background: linear-gradient(135deg, var(--primary-color), #3a0ca3);
+    }
+    .btn-employee::before {
+        background: var(--primary-color);
+    }
+    .btn-employee i {
+        background: rgba(67, 97, 238, 0.1);
+        color: var(--primary-color);
+    }
+
+    .btn-flight {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-flight:hover {
+        background: linear-gradient(135deg, var(--flight-color), #3f37c9);
+    }
+    .btn-flight::before {
+        background: var(--flight-color);
+    }
+    .btn-flight i {
+        background: rgba(72, 149, 239, 0.1);
+        color: var(--flight-color);
+    }
+
+    .btn-rotation {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-rotation:hover {
+        background: linear-gradient(135deg, var(--rotation-color), #3a0ca3);
+    }
+    .btn-rotation::before {
+        background: var(--rotation-color);
+    }
+    .btn-rotation i {
+        background: rgba(63, 55, 201, 0.1);
+        color: var(--rotation-color);
+    }
+
+    .btn-report {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-report:hover {
+        background: linear-gradient(135deg, var(--report-color), #4895ef);
+    }
+    .btn-report::before {
+        background: var(--report-color);
+    }
+    .btn-report i {
+        background: rgba(76, 201, 240, 0.1);
+        color: var(--report-color);
+    }
+
+    .btn-admin {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-admin:hover {
+        background: linear-gradient(135deg, var(--admin-color), #7209b7);
+    }
+    .btn-admin::before {
+        background: var(--admin-color);
+    }
+    .btn-admin i {
+        background: rgba(114, 9, 183, 0.1);
+        color: var(--admin-color);
+    }
+
+    .btn-developer {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-developer:hover {
+        background: linear-gradient(135deg, var(--developer-color), #560bad);
+    }
+    .btn-developer::before {
+        background: var(--developer-color);
+    }
+    .btn-developer i {
+        background: rgba(86, 11, 173, 0.1);
+        color: var(--developer-color);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-danger:hover {
+        background: linear-gradient(135deg, var(--accent-color), #f72585);
+    }
+    .btn-danger::before {
+        background: var(--accent-color);
+    }
+    .btn-danger i {
+        background: rgba(247, 37, 133, 0.1);
+        color: var(--accent-color);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
+    .btn-success:hover {
+        background: linear-gradient(135deg, var(--success-color), #4cc9f0);
+    }
+    .btn-success::before {
+        background: var(--success-color);
+    }
+    .btn-success i {
+        background: rgba(76, 201, 240, 0.1);
+        color: var(--success-color);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .app-card {
+            padding: 2rem;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .nav-grid {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        
+        .app-title {
+            font-size: 2.4rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            padding: 1.5rem;
+        }
+        
+        .app-card {
+            padding: 1.5rem;
+        }
+        
+        .app-title {
+            font-size: 2rem;
+        }
+        
+        .user-welcome {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.5rem;
+        }
+        
+        .user-welcome .btn-logout {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .section-header {
+            font-size: 1.3rem;
+        }
+        
+        .nav-btn {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .nav-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .app-title {
+            font-size: 1.8rem;
+        }
+        
+        .app-subtitle {
+            font-size: 1rem;
+        }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+
+    .float-animation {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    /* Ripple effect */
+    .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.4);
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+    }
+
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="app-card fade-in">
+        {% if 'username' in session %}
+            <div class="user-welcome fade-in float-animation">
+                <div class="user-info">
+                    <div class="user-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ session['full_name'] or session['username'] }}</div>
+                        <div class="user-role">
+                            {% if session.get('is_admin') %}
+                                <span class="badge badge-admin">Administrator</span>
+                            {% endif %}
+                            {% if session.get('is_developer') %}
+                                <span class="badge badge-developer">Developer</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <form action="{{ url_for('logout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+
+        <div class="app-header">
+            <h1 class="app-title">Employee & Flight Management</h1>
+            <p class="app-subtitle">Comprehensive workforce and travel management system for efficient operations</p>
+        </div>
+
+        <div class="nav-grid">
+            <!-- Employee Management Section -->
+            <div class="section-card employee-section fade-in" style="animation-delay: 0.1s">
+                <h3 class="section-header">
+                    <i class="fas fa-users"></i>
+                    Employee Management
+                </h3>
+                
+                <a href="{{ url_for('register_employee') }}" class="nav-btn btn-employee">
+                    <i class="fas fa-user-plus"></i>
+                    <div>
+                        <div class="btn-text">Register Employee</div>
+                        <div class="btn-desc">Add new employees to the system</div>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('employee_list') }}" class="nav-btn btn-employee">
+                    <i class="fas fa-list-ul"></i>
+                    <div>
+                        <div class="btn-text">Employee List</div>
+                        <div class="btn-desc">View and manage all employees</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('search_profile') }}" class="nav-btn btn-employee">
+                    <i class="fas fa-search"></i>
+                    <div>
+                        <div class="btn-text">Search Profiles</div>
+                        <div class="btn-desc">Find specific employee records</div>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('calendar_view') }}" class="nav-btn btn-employee">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                        <div class="btn-text">Employee Calendar</div>
+                        <div class="btn-desc">View important dates and events</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Flight Management Section -->
+            <div class="section-card flight-section fade-in" style="animation-delay: 0.2s">
+                <h3 class="section-header">
+                    <i class="fas fa-plane"></i>
+                    Flight Management
+                </h3>
+                
+                <a href="{{ url_for('new_trip') }}" class="nav-btn btn-flight">
+                    <i class="fas fa-plus-circle"></i>
+                    <div>
+                        <div class="btn-text">New Flight Trip</div>
+                        <div class="btn-desc">Create new flight records</div>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('view_flights') }}" class="nav-btn btn-flight">
+                    <i class="fas fa-plane"></i>
+                    <div>
+                        <div class="btn-text">Flight Records</div>
+                        <div class="btn-desc">View all flight information</div>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('flight_calendar') }}" class="nav-btn btn-flight">
+                    <i class="fas fa-calendar-check"></i>
+                    <div>
+                        <div class="btn-text">Flight Calendar</div>
+                        <div class="btn-desc">View flight schedules</div>
+                    </div>
+                </a>
+            </div>
+            
+            <!-- Rotation Management Section -->
+            <div class="section-card rotation-section fade-in" style="animation-delay: 0.3s">
+                <h3 class="section-header">
+                    <i class="fas fa-sync-alt"></i>
+                    Rotation Management
+                </h3>
+                
+                <a href="{{ url_for('manage_rotations') }}" class="nav-btn btn-rotation">
+                    <i class="fas fa-calendar-plus"></i>
+                    <div>
+                        <div class="btn-text">Manage Rotations</div>
+                        <div class="btn-desc">Create and edit rotation schedules</div>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('rotation_calendar') }}" class="nav-btn btn-rotation">
+                    <i class="fas fa-calendar-week"></i>
+                    <div>
+                        <div class="btn-text">Rotation Calendar</div>
+                        <div class="btn-desc">View rotation schedules</div>
+                    </div>
+                </a>
+            </div>
+            
+            <!-- Reports & Documents Section -->
+            <div class="section-card report-section fade-in" style="animation-delay: 0.4s">
+                <h3 class="section-header">
+                    <i class="fas fa-chart-line"></i>
+                    Reports & Documents
+                </h3>
+                
+                <a href="{{ url_for('generate_reports') }}" class="nav-btn btn-success">
+                    <i class="fas fa-chart-bar"></i>
+                    <div>
+                        <div class="btn-text">Generate Reports</div>
+                        <div class="btn-desc">Workforce analytics and insights</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('flight_records_report') }}" class="nav-btn btn-flight">
+                    <i class="fas fa-plane"></i>
+                    <div>
+                        <div class="btn-text">Flight Records Report</div>
+                        <div class="btn-desc">Generate and export flight data</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('expiry_reports') }}" class="nav-btn btn-danger">
+                    <i class="fas fa-file-contract"></i>
+                    <div>
+                        <div class="btn-text">Expiry Reports</div>
+                        <div class="btn-desc">Document expiration tracking</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('rotation_reports') }}" class="nav-btn btn-rotation">
+                    <i class="fas fa-sync-alt"></i>
+                    <div>
+                        <div class="btn-text">Rotation Reports</div>
+                        <div class="btn-desc">Generate rotation analytics</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Admin Section (Visible only to admins) -->
+            {% if session.get('is_admin') %}
+            <div class="section-card admin-section fade-in" style="animation-delay: 0.5s">
+                <h3 class="section-header">
+                    <i class="fas fa-user-shield"></i>
+                    Administration
+                </h3>
+                
+                <a href="{{ url_for('admin_users') }}" class="nav-btn btn-admin">
+                    <i class="fas fa-users-cog"></i>
+                    <div>
+                        <div class="btn-text">User Management</div>
+                        <div class="btn-desc">Manage system users and permissions</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('pending_users') }}" class="nav-btn btn-admin">
+                    <i class="fas fa-user-clock"></i>
+                    <div>
+                        <div class="btn-text">Pending Approvals</div>
+                        <div class="btn-desc">Review new user registrations</div>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('view_activity') }}" class="nav-btn btn-admin">
+                    <i class="fas fa-history"></i>
+                    <div>
+                        <div class="btn-text">Activity Log</div>
+                        <div class="btn-desc">System usage and access history</div>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Developer Tools Section (Visible only to developers) -->
+            {% if session.get('is_developer') %}
+            <div class="section-card developer-section fade-in" style="animation-delay: 0.6s">
+                <h3 class="section-header">
+                    <i class="fas fa-code"></i>
+                    Developer Tools
+                </h3>
+                
+                <a href="{{ url_for('manage_trial') }}" class="nav-btn btn-developer">
+                    <i class="fas fa-key"></i>
+                    <div>
+                        <div class="btn-text">Trial Management</div>
+                        <div class="btn-desc">Generate and manage trial keys</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="nav-btn btn-developer" data-bs-toggle="modal" data-bs-target="#remoteActivationModal">
+                    <i class="fas fa-wifi"></i>
+                    <div>
+                        <div class="btn-text">Remote Activation</div>
+                        <div class="btn-desc">Activate trial for clients</div>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if session.get('is_developer') %}
+<!-- Remote Activation Modal -->
+<div class="modal fade" id="remoteActivationModal" tabindex="-1" aria-labelledby="remoteActivationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="remoteActivationModalLabel">
+                    <i class="fas fa-wifi me-2"></i>Remote Trial Activation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-key me-2"></i>Generate New Key
+                            </div>
+                            <div class="card-body">
+                                <form id="generateKeyForm">
+                                    <div class="mb-3">
+                                        <label for="daysToAdd" class="form-label">Days to Add</label>
+                                        <input type="number" class="form-control" id="daysToAdd" min="1" max="365" value="30" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="clientEmail" class="form-label">Client Email (optional)</label>
+                                        <input type="email" class="form-control" id="clientEmail">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-key me-2"></i>Generate Key
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-keyboard me-2"></i>Generated Key
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="keyResult" class="py-4" style="display: none;">
+                                    <h5 class="mb-3">Trial Extension Key</h5>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control text-center font-monospace" id="generatedKey" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" id="copyKeyBtn">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    <p class="small text-muted mb-3">Valid for <span id="keyDays">30</span> days</p>
+                                    <button class="btn btn-success" id="sendKeyBtn" style="display: none;">
+                                        <i class="fas fa-paper-plane me-2"></i>Send to Client
+                                    </button>
+                                </div>
+                                <div id="keyPlaceholder" class="py-4">
+                                    <i class="fas fa-key fa-3x text-muted mb-3"></i>
+                                    <p>Generate a trial extension key to display here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add animation class to buttons with delay
+    document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+        btn.style.animationDelay = `${0.3 + index * 0.1}s`;
+    });
+
+    // Add ripple effect to buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+
+    // Remote Activation Modal Functionality
+    document.getElementById('generateKeyForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const days = document.getElementById('daysToAdd').value;
+        const email = document.getElementById('clientEmail').value;
+        
+        // In a real app, this would be an AJAX call to your backend
+        fetch('/admin/generate_trial_key', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                days: days,
+                email: email
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show the generated key
+                document.getElementById('keyPlaceholder').style.display = 'none';
+                document.getElementById('keyResult').style.display = 'block';
+                document.getElementById('generatedKey').value = data.key;
+                document.getElementById('keyDays').textContent = days;
+                
+                // Show send button if email was provided
+                if (email) {
+                    document.getElementById('sendKeyBtn').style.display = 'inline-block';
+                }
+            } else {
+                alert('Error generating key: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error generating key');
+        });
+    });
+
+    // Copy key to clipboard
+    document.getElementById('copyKeyBtn')?.addEventListener('click', function() {
+        const keyInput = document.getElementById('generatedKey');
+        keyInput.select();
+        document.execCommand('copy');
+        
+        // Show tooltip feedback
+        const tooltip = new bootstrap.Tooltip(this, {
+            title: 'Copied!',
+            trigger: 'manual'
+        });
+        tooltip.show();
+        setTimeout(() => tooltip.hide(), 1000);
+    });
+
+    // Send key to client
+    document.getElementById('sendKeyBtn')?.addEventListener('click', function() {
+        const email = document.getElementById('clientEmail').value;
+        const key = document.getElementById('generatedKey').value;
+        
+        fetch('/admin/send_trial_key', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                email: email,
+                key: key
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Key sent successfully to ' + email);
+            } else {
+                alert('Error sending key: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending key');
+        });
+    });
+</script>
+{% endblock %}

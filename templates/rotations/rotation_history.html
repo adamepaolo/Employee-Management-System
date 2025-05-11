@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Rotation History{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rotation-history-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .rotation-history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .rotation-history-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .rotation-history-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .rotation-history-card-header {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    
+    .rotation-history-card-body {
+        padding: 1.5rem;
+    }
+    
+    .rotation-history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .rotation-history-table th {
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .rotation-history-table td {
+        padding: 0.75rem;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .rotation-history-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    /* Enhanced system info styles */
+    .system-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-column {
+        width: 48%;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0.25rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 120px;
+    }
+    
+    .system-info-value {
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .user-info i {
+        margin-right: 5px;
+        color: #6c757d;
+    }
+    
+    /* Status badges */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-working {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-vacation {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-training {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-medical {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rotation-history-container">
+    <div class="rotation-history-header">
+        <h2 class="rotation-history-title">
+            Rotation History for {{ employee['DisplayName'] }}
+        </h2>
+        <a href="{{ url_for('manage_rotations') }}" class="rotation-btn rotation-btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Rotations
+        </a>
+    </div>
+    
+    <div class="rotation-history-card">
+        <div class="rotation-history-card-header">
+            <i class="fas fa-history me-2"></i>Rotation History
+        </div>
+        <div class="rotation-history-card-body">
+            <div class="table-responsive">
+                <table class="rotation-history-table">
+                    <thead>
+                        <tr>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration</th>
+                            <th>Travel To</th>
+                            <th>Travel From</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Last Updated By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rotation in rotations %}
+                        <tr>
+                            <td>{{ rotation['start_date'] }}</td>
+                            <td>{{ rotation['end_date'] }}</td>
+                            <td>{{ rotation['rotation_days'] }} days</td>
+                            <td>{{ rotation['travel_to'] }}</td>
+                            <td>{{ rotation['travel_from'] }}</td>
+                            <td>
+                                <span class="status-badge status-{{ rotation['status'] }}">
+                                    {{ rotation['status']|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if rotation.created_by_name %}
+                                    <span class="user-info">
+                                        <i class="fas fa-user"></i> {{ rotation.created_by_name }}
+                                    </span>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rotation.updated_by_name %}
+                                    <span class="user-info">
+                                        <i class="fas fa-user-edit"></i> {{ rotation.updated_by_name }}
+                                    </span>
+                                {% elif rotation.updated_by %}
+                                    <span class="user-info">
+                                        <i class="fas fa-user-shield"></i> User #{{ rotation.updated_by }}
+                                    </span>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">No rotation history found for this employee</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Information Section -->
+            {% if rotations %}
+            <div class="system-info mt-3">
+                <div class="system-info-column">
+                    <div class="system-info-item">
+                        <span class="system-info-label">
+                            <i class="fas fa-user-plus"></i> First Created By:
+                        </span>
+                        <span class="system-info-value">
+                            {% if rotations[0].created_by_name %}
+                                <span class="user-info">
+                                    <i class="fas fa-user"></i> {{ rotations[0].created_by_name }}
+                                </span>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">
+                            <i class="far fa-calendar-plus"></i> First Created At:
+                        </span>
+                        <span class="system-info-value">
+                            {% if rotations[0].created_at %}
+                                {{ rotations[0].created_at|datetimeformat }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="system-info-column">
+                    <div class="system-info-item">
+                        <span class="system-info-label">
+                            <i class="fas fa-user-edit"></i> Last Updated By:
+                        </span>
+                        <span class="system-info-value">
+                            {% if rotations[-1].updated_by_name %}
+                                <span class="user-info">
+                                    <i class="fas fa-user-edit"></i> {{ rotations[-1].updated_by_name }}
+                                </span>
+                            {% elif rotations[-1].updated_by %}
+                                <span class="user-info">
+                                    <i class="fas fa-user-shield"></i> User #{{ rotations[-1].updated_by }}
+                                </span>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">
+                            <i class="far fa-calendar-check"></i> Last Updated At:
+                        </span>
+                        <span class="system-info-value">
+                            {% if rotations[-1].updated_at %}
+                                {{ rotations[-1].updated_at|datetimeformat }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

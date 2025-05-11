@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Rotations{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rotation-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .rotation-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .rotation-card-header {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    
+    .rotation-card-body {
+        padding: 1.5rem;
+    }
+    
+    .rotation-form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .rotation-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .rotation-table th {
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .rotation-table td {
+        padding: 0.75rem;
+        border-top: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+    
+    .rotation-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .rotation-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .rotation-btn i {
+        margin-right: 0.5rem;
+    }
+    
+    .rotation-btn-primary {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+    }
+    
+    .rotation-btn-primary:hover {
+        background: linear-gradient(135deg, #8e44ad, #7d3c98);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .rotation-btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .rotation-btn-secondary:hover {
+        background: #5a6268;
+        color: white;
+    }
+    
+    .rotation-btn-danger {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+    
+    .rotation-btn-danger:hover {
+        background: linear-gradient(135deg, #c0392b, #a5281b);
+        color: white;
+    }
+    
+    .rotation-filter-form {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .rotation-filter-group {
+        display: flex;
+        align-items: center;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .rotation-filter-group label {
+        margin-right: 0.5rem;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .rotation-export-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .day-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .day-selector .form-check {
+        margin-right: 15px;
+        margin-bottom: 5px;
+    }
+
+    .day-selector .form-check-input {
+        margin-right: 5px;
+    }
+
+    /* Rotation Status Styles */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-working {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-vacation {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
+    .status-training {
+        background-color: #cce5ff;
+        color: #004085;
+        border: 1px solid #b8daff;
+    }
+
+    .status-medical {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .status-emergency {
+        background-color: #ffcccc;
+        color: #cc0000;
+        border: 1px solid #ff9999;
+        font-weight: bold;
+    }
+
+    /* Form Styles */
+    .rotation-form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .status-select {
+        max-width: 250px;
+    }
+
+    /* System info styles */
+    .system-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.8rem;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .system-info-value {
+        color: #6c757d;
+    }
+    
+    @media (max-width: 768px) {
+        .rotation-filter-group {
+            flex-direction: column;
+            align-items: flex-start;
+            margin-right: 0;
+        }
+        
+        .rotation-filter-group label {
+            margin-bottom: 0.25rem;
+        }
+        
+        .rotation-export-buttons {
+            flex-direction: column;
+        }
+        
+        .rotation-btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rotation-container">
+    <div class="rotation-card">
+        <div class="rotation-card-header">
+            <i class="fas fa-calendar-plus me-2"></i>Add New Rotation
+        </div>
+        <div class="rotation-card-body">
+            <form method="POST" action="{{ url_for('manage_rotations') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+    <label for="employee_id">Employee</label>
+    <select class="form-control" id="employee_id" name="employee_id" required>
+        <option value="">Select Employee</option>
+        {% for employee in employees %}
+            {% if employee['Status'] == 'Active' %}
+                <option value="{{ employee['EmployeeId'] }}">{{ employee['DisplayName'] }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="rotation-form-group">
+                            <label for="rotation_days">Rotation Days</label>
+                            <input type="number" class="form-control" id="rotation_days" name="rotation_days" min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="rotation-form-group">
+                            <label for="travel_to">Travel To</label>
+                            <input type="text" class="form-control" id="travel_to" name="travel_to" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="rotation-form-group">
+                            <label for="travel_from">Travel From</label>
+                            <input type="text" class="form-control" id="travel_from" name="travel_from" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Selector -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="rotation_status">Rotation Status</label>
+                            <select class="form-control status-select" id="rotation_status" name="status" required>
+                                <option value="working">Working</option>
+                                <option value="vacation">Vacation</option>
+                                <option value="training">Training</option>
+                                <option value="medical">Medical Leave</option>
+                                <option value="emergency">Emergency Leave</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rest Days Selector -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="rotation-form-group">
+                            <label>Rest Days (Select days employee doesn't work)</label>
+                            <div class="day-selector">
+                                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="rest_day_{{ day }}" 
+                                           name="rest_days" value="{{ day }}">
+                                    <label class="form-check-label" for="rest_day_{{ day }}">{{ day }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="rotation-btn rotation-btn-primary">
+                    <i class="fas fa-save me-1"></i> Add Rotation
+                </button>
+                <a href="{{ url_for('rotation_calendar') }}" class="rotation-btn rotation-btn-secondary">
+                    <i class="fas fa-calendar-week me-1"></i> View Calendar
+                </a>
+            </form>
+        </div>
+    </div>
+    
+    <div class="rotation-filter-form">
+        <form method="GET" class="form-inline">
+            <div class="d-flex flex-wrap">
+                <div class="rotation-filter-group">
+                    <label for="employee_filter">Employee:</label>
+                    <select class="form-control" id="employee_filter" name="employee_filter" onchange="this.form.submit()">
+    <option value="">All Employees</option>
+    {% for employee in employees %}
+        {% if employee['Status'] == 'Active' %}
+            <option value="{{ employee['EmployeeId'] }}" 
+                {% if employee['EmployeeId'] == filters.employee_filter %}selected{% endif %}>
+                {{ employee['DisplayName'] }}
+            </option>
+        {% endif %}
+    {% endfor %}
+</select>
+                </div>
+                <div class="rotation-filter-group">
+                    <label for="date_from">From:</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" 
+                           value="{{ filters.date_from }}">
+                </div>
+                <div class="rotation-filter-group">
+                    <label for="date_to">To:</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" 
+                           value="{{ filters.date_to }}">
+                </div>
+                <button type="submit" class="rotation-btn rotation-btn-primary mr-2">
+                    <i class="fas fa-filter me-1"></i> Apply
+                </button>
+                <a href="{{ url_for('manage_rotations') }}" class="rotation-btn rotation-btn-secondary">
+                    <i class="fas fa-redo me-1"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="rotation-card">
+        <div class="rotation-card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-sync-alt me-2"></i>Current Rotations
+            </div>
+            <form method="POST" action="{{ url_for('export_rotations', export_type='excel') }}" class="d-flex">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="employee_filter" value="{{ filters.employee_filter }}"/>
+                <input type="hidden" name="date_from" value="{{ filters.date_from }}"/>
+                <input type="hidden" name="date_to" value="{{ filters.date_to }}"/>
+                <div class="rotation-export-buttons">
+                    <button type="submit" class="rotation-btn rotation-btn-success">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="rotation-card-body">
+            <div class="table-responsive">
+                <table class="rotation-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration</th>
+                            <th>Travel To</th>
+                            <th>Travel From</th>
+                            <th>Status</th>
+                            <th>System Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rotation in rotations %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('rotation_history', employee_id=rotation['employee_id']) }}">
+                                    {{ rotation['employee_name'] }}
+                                </a>
+                            </td>
+                            <td>{{ rotation['start_date'] }}</td>
+                            <td>{{ rotation['end_date'] }}</td>
+                            <td>{{ rotation['rotation_days'] }} days</td>
+                            <td>{{ rotation['travel_to'] }}</td>
+                            <td>{{ rotation['travel_from'] }}</td>
+                            <td>
+                                <span class="status-badge 
+                                    {% if rotation['status'] == 'working' %}status-working
+                                    {% elif rotation['status'] == 'vacation' %}status-vacation
+                                    {% elif rotation['status'] == 'training' %}status-training
+                                    {% elif rotation['status'] == 'medical' %}status-medical
+                                    {% elif rotation['status'] == 'emergency' %}status-emergency
+                                    {% endif %}">
+                                    {{ rotation['status']|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="system-info">
+                                    <div class="system-info-item">
+                                        <span class="system-info-label">Created:</span>
+                                        <span class="system-info-value">
+                                            {{ rotation['created_at']|datetimeformat }}
+                                        </span>
+                                    </div>
+                                    {% if rotation['updated_at'] %}
+                                    <div class="system-info-item">
+                                        <span class="system-info-label">Updated:</span>
+                                        <span class="system-info-value">
+                                            {{ rotation['updated_at']|datetimeformat }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex">
+                                    <a href="{{ url_for('update_rotation', rotation_id=rotation['id']) }}" 
+                                       class="rotation-btn rotation-btn-primary mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_rotation', rotation_id=rotation['id']) }}" 
+                                          onsubmit="return confirm('Are you sure you want to delete this rotation?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="rotation-btn rotation-btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">No rotations found matching your criteria</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* Add to your existing CSS */
+.card-header.bg-light {
+    background-color: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.card-body {
+    color: #212529;
+}
+
+.alert-light {
+    background-color: rgba(248, 249, 250, 0.8);
+    border-color: #dee2e6;
+}
+
+</style>
+<div class="container mt-4">
+    <!-- Header with action buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas fa-plane mr-2 text-primary"></i>
+                Flight Details - {{ flight.company_flight_ref }}
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('view_flights') }}">All Flights</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Flight Details</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{{ url_for('edit_flight', flight_id=flight.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit mr-2"></i> Edit Flight
+            </a>
+            <a href="{{ url_for('view_flights') }}" class="btn btn-outline-secondary ml-2">
+                <i class="fas fa-arrow-left mr-2"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    {% if flight.ticket_status == 'Cancelled' %}
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="fas fa-exclamation-triangle fa-2x mr-3"></i>
+        <div>
+            <h5 class="alert-heading mb-1">This flight has been cancelled</h5>
+            <p class="mb-0">Please contact the travel department for any questions.</p>
+        </div>
+    </div>
+    {% elif flight.ticket_status == 'On Process' %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="fas fa-clock fa-2x mr-3"></i>
+        <div>
+            <h5 class="alert-heading mb-1">Ticket processing in progress</h5>
+            <p class="mb-0">This flight ticket is currently being processed.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Basic Flight Information -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Basic Flight Information</h5>
+            <span class="badge bg-light text-dark">{{ flight.ticket_status }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Passenger:</dt>
+                        <dd class="col-sm-8 font-weight-bold">{{ flight.passenger_name }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Designation:</dt>
+                        <dd class="col-sm-8">{{ flight.designation }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Company:</dt>
+                        <dd class="col-sm-8">{{ flight.company }}</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">PNR/Ticket No:</dt>
+                        <dd class="col-sm-8 font-monospace">{{ flight.pnr_ticket_number }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Flight Route:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info text-dark">{{ flight.flight_type }}</span>
+                            <span class="ml-2">{{ flight.flight_route }}</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Timeline -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm mb-4 h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-plane-departure mr-2"></i>Departure Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if flight.departure_airport %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Country:</dt>
+                        <dd class="col-sm-8">{{ flight.departure_country }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airport:</dt>
+                        <dd class="col-sm-8 font-weight-bold">{{ flight.departure_airport }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Date/Time:</dt>
+                        <dd class="col-sm-8">
+                            <span class="font-weight-bold">{{ flight.departure_date }}</span>
+                            at {{ flight.departure_time }}
+                        </dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airline:</dt>
+                        <dd class="col-sm-8">{{ flight.departure_airline }}</dd>
+                    </dl>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-plane-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No departure details recorded</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm mb-4 h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-plane-arrival mr-2"></i>Arrival Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Country:</dt>
+                        <dd class="col-sm-8">{{ flight.arrival_country }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airport:</dt>
+                        <dd class="col-sm-8 font-weight-bold">{{ flight.arrival_airport }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Date/Time:</dt>
+                        <dd class="col-sm-8">
+                            <span class="font-weight-bold">{{ flight.arrival_date }}</span>
+                            at {{ flight.arrival_time }}
+                        </dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airline:</dt>
+                        <dd class="col-sm-8">{{ flight.arrival_airline }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transit Details (Conditional) -->
+    {% if flight.has_transit %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-exchange-alt mr-2"></i>Transit Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Country:</dt>
+                        <dd class="col-sm-8">{{ flight.transit_country }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airport:</dt>
+                        <dd class="col-sm-8 font-weight-bold">{{ flight.transit_airport }}</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Duration:</dt>
+                        <dd class="col-sm-8">{{ flight.transit_hours }}</dd>
+                        
+                        <dt class="col-sm-4 text-muted">Airline:</dt>
+                        <dd class="col-sm-8">{{ flight.transit_airline }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ticket Document Section -->
+<!--<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-file-upload mr-2"></i>Ticket Documentation</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="ticket_document" class="form-label">
+                <i class="fas fa-file-pdf mr-2"></i>Update Ticket Document
+            </label>
+            <input type="file" class="form-control" id="ticket_document" name="ticket_document" accept=".pdf,.jpg,.jpeg,.png">
+            <div class="form-text">
+                Leave blank to keep current document. Max 16MB (PDF, JPG, PNG)
+            </div>
+        </div>
+        
+        {% if flight.ticket_document %}
+        <div class="alert alert-light">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <i class="fas fa-paperclip mr-2"></i>
+                    <strong>Current Ticket:</strong> 
+                    <a href="{{ url_for('view_ticket', filename=flight.ticket_document.split('/')[-1]) }}" 
+                       target="_blank" class="ml-2">
+                        View Current Ticket
+                    </a>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="delete_ticket_document" name="delete_ticket_document">
+                    <label class="form-check-label text-danger" for="delete_ticket_document">
+                        <i class="fas fa-trash-alt mr-1"></i> Remove current ticket
+                    </label>
+                </div>
+            </div>
+            
+            {% if flight.ticket_document.endswith(('.jpg', '.jpeg', '.png')) %}
+                <div class="text-center mt-2">
+                    <img src="{{ url_for('view_ticket', filename=flight.ticket_document.split('/')[-1]) }}" 
+                         class="img-thumbnail" style="max-height: 150px;" 
+                         alt="Current Ticket Preview">
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>-->
+
+    <!-- Update the System Information card section -->
+<div class="card mt-4">
+    <div class="card-header bg-light text-dark"> <!-- Changed from bg-secondary text-white -->
+        <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>System Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Created By:</dt>
+                    <dd class="col-sm-8">{{ flight.created_by_name or 'System' }}</dd>
+                    
+                    <dt class="col-sm-4 text-muted">Created At:</dt>
+                    <dd class="col-sm-8">{{ flight.created_at }}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                {% if flight.updated_by_name %}
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Last Updated By:</dt>
+                    <dd class="col-sm-8">{{ flight.updated_by_name }}</dd>
+                    
+                    <dt class="col-sm-4 text-muted">Last Updated At:</dt>
+                    <dd class="col-sm-8">{{ flight.updated_at }}</dd>
+                </dl>
+                {% else %}
+                <div class="alert alert-light mb-0" role="alert">
+                    <i class="fas fa-info-circle mr-2"></i>This record hasn't been modified since creation.
+                </div>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block title %}Rotation Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional Color Scheme */
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: #2ecc71;
+        --dark-color: #2c3e50;
+        --light-color: #f8f9fa;
+        --danger-color: #e74c3c;
+        --warning-color: #f39c12;
+        --success-color: #27ae60;
+    }
+
+    .rotation-reports-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .rotation-reports-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .rotation-reports-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .rotation-reports-title i {
+        margin-right: 12px;
+        color: var(--primary-color);
+    }
+    
+    /* Modern Card Design */
+    .rotation-reports-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        border: none;
+    }
+    
+    .rotation-reports-card-header {
+        background: linear-gradient(135deg, var(--primary-color), #2980b9);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .rotation-reports-card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Enhanced Filter Form */
+    .rotation-filter-form {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .rotation-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .rotation-filter-group {
+        flex: 1;
+        min-width: 220px;
+    }
+    
+    .rotation-filter-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+    
+    /* Professional Table Styling */
+    .rotation-reports-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .rotation-reports-table thead th {
+        background-color: var(--dark-color);
+        color: white;
+        padding: 0.85rem 1rem;
+        text-align: left;
+        font-weight: 500;
+        position: sticky;
+        top: 0;
+        border: none;
+    }
+    
+    .rotation-reports-table tbody td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+    
+    .rotation-reports-table tbody tr:not(:last-child) td {
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .rotation-reports-table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+    
+    .status-working { background-color: #d4edda; color: #155724; }
+    .status-vacation { background-color: #fff3cd; color: #856404; }
+    .status-training { background-color: #d1ecf1; color: #0c5460; }
+    .status-medical { background-color: #f8d7da; color: #721c24; }
+    
+    /* Action Buttons */
+    .rotation-export-btn {
+        background: linear-gradient(135deg, var(--secondary-color), var(--success-color));
+        color: white;
+        padding: 0.5rem 1.25rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3);
+    }
+    
+    .rotation-export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+    }
+    
+    .rotation-export-btn i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Summary Cards */
+    .rotation-summary-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .rotation-summary-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .rotation-summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    /* System Info Section */
+    .system-info {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        font-size: 0.85rem;
+    }
+    
+    .system-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 0.8rem;
+    }
+    
+    .system-info-value {
+        color: #495057;
+        font-weight: 500;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .rotation-filter-group {
+            min-width: 100%;
+        }
+        
+        .rotation-reports-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .system-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rotation-reports-container">
+    <div class="rotation-reports-header">
+        <h2 class="rotation-reports-title">
+            <i class="fas fa-chart-pie"></i>Rotation Analytics Dashboard
+        </h2>
+        <a href="{{ url_for('manage_rotations') }}" class="rotation-btn rotation-btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Management
+        </a>
+    </div>
+    
+    <!-- Filter Card -->
+    <div class="rotation-reports-card">
+        <div class="rotation-reports-card-header">
+            <div>
+                <i class="fas fa-filter me-2"></i>Report Filters
+            </div>
+        </div>
+        <div class="rotation-reports-card-body">
+            <form method="GET" class="rotation-filter-form">
+                <div class="rotation-filter-row">
+                    <div class="rotation-filter-group">
+                        <label for="employee_filter">Employee</label>
+                        <select class="form-control" id="employee_filter" name="employee_filter">
+                            <option value="">All Employees</option>
+                            {% for employee in employees %}
+                                <option value="{{ employee['EmployeeId'] }}" 
+                                    {% if employee['EmployeeId'] == filters.employee_filter %}selected{% endif %}>
+                                    {{ employee['DisplayName'] }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="rotation-filter-group">
+                        <label for="company_filter">Company</label>
+                        <select class="form-control" id="company_filter" name="company_filter">
+                            <option value="">All Companies</option>
+                            {% for company in companies %}
+                                <option value="{{ company }}" 
+                                    {% if company == filters.company_filter %}selected{% endif %}>
+                                    {{ company }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="rotation-filter-group">
+                        <label for="travel_to_filter">Destination</label>
+                        <select class="form-control" id="travel_to_filter" name="travel_to_filter">
+                            <option value="">All Destinations</option>
+                            {% for location in travel_tos %}
+                                <option value="{{ location }}" 
+                                    {% if location == filters.travel_to_filter %}selected{% endif %}>
+                                    {{ location }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="rotation-filter-group">
+                        <label for="travel_from_filter">Origin</label>
+                        <select class="form-control" id="travel_from_filter" name="travel_from_filter">
+                            <option value="">All Origins</option>
+                            {% for location in travel_froms %}
+                                <option value="{{ location }}" 
+                                    {% if location == filters.travel_from_filter %}selected{% endif %}>
+                                    {{ location }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="rotation-filter-row">
+                    <div class="rotation-filter-group">
+                        <label for="date_from">From Date</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ filters.date_from }}">
+                    </div>
+                    
+                    <div class="rotation-filter-group">
+                        <label for="date_to">To Date</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" 
+                               value="{{ filters.date_to }}">
+                    </div>
+                    
+                    <div class="rotation-filter-group" style="align-self: flex-end;">
+                        <button type="submit" class="rotation-btn rotation-btn-primary">
+                            <i class="fas fa-filter me-1"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('rotation_reports') }}" class="rotation-btn rotation-btn-secondary">
+                            <i class="fas fa-redo me-1"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Summary Cards -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="rotation-summary-card">
+                        <div class="rotation-summary-title">Total Rotations</div>
+                        <div class="rotation-summary-value">{{ rotations|length }}</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="rotation-summary-card">
+                        <div class="rotation-summary-title">Unique Employees</div>
+                        <div class="rotation-summary-value">
+                            {{ rotations|map(attribute='employee_id')|unique|list|length }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="rotation-summary-card">
+                        <div class="rotation-summary-title">Avg. Duration</div>
+                        <div class="rotation-summary-value">
+                            {% if rotations %}
+                                {{ (rotations|sum(attribute='rotation_days') / rotations|length)|round(1) }}d
+                            {% else %}
+                                0d
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="rotation-summary-card">
+                        <div class="rotation-summary-title">Total Days</div>
+                        <div class="rotation-summary-value">
+                            {{ rotations|sum(attribute='rotation_days') }}d
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Table Card -->
+    <div class="rotation-reports-card">
+        <div class="rotation-reports-card-header">
+            <div>
+                <i class="fas fa-table me-2"></i>Rotation Data
+            </div>
+            <form method="POST" action="{{ url_for('rotation_reports') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="employee_filter" value="{{ filters.employee_filter }}"/>
+                <input type="hidden" name="company_filter" value="{{ filters.company_filter }}"/>
+                <input type="hidden" name="travel_to_filter" value="{{ filters.travel_to_filter }}"/>
+                <input type="hidden" name="travel_from_filter" value="{{ filters.travel_from_filter }}"/>
+                <input type="hidden" name="date_from" value="{{ filters.date_from }}"/>
+                <input type="hidden" name="date_to" value="{{ filters.date_to }}"/>
+                <button type="submit" name="export" value="csv" class="rotation-export-btn">
+                    <i class="fas fa-file-export me-1"></i> Export CSV
+                </button>
+            </form>
+        </div>
+        <div class="rotation-reports-card-body">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="rotation-reports-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Company</th>
+                            <th>Designation</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration</th>
+                            <th>Travel To</th>
+                            <th>Travel From</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Updated By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rotation in rotations %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('rotation_history', employee_id=rotation['employee_id']) }}" class="text-primary">
+                                    {{ rotation['employee_name'] }}
+                                </a>
+                            </td>
+                            <td>{{ rotation['company'] }}</td>
+                            <td>{{ rotation['designation'] }}</td>
+                            <td>{{ rotation['start_date'] }}</td>
+                            <td>{{ rotation['end_date'] }}</td>
+                            <td>{{ rotation['rotation_days'] }}d</td>
+                            <td>{{ rotation['travel_to'] }}</td>
+                            <td>{{ rotation['travel_from'] }}</td>
+                            <td>
+                                <span class="status-badge status-{{ rotation['status'] }}">
+                                    {{ rotation['status'] }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if rotation['created_by_name'] %}
+                                    <span class="text-muted">{{ rotation['created_by_name'] }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rotation['updated_by_name'] %}
+                                    <span class="text-muted">{{ rotation['updated_by_name'] }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4">No rotations found matching your criteria</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- System Information Section -->
+            {% if rotations %}
+            <div class="system-info">
+                <div class="system-info-grid">
+                    <div class="system-info-item">
+                        <span class="system-info-label">Report Generated By:</span>
+                        <span class="system-info-value">{{ session['username'] }}</span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Generated At:</span>
+                        <span class="system-info-value">{{ now|datetimeformat('%Y-%m-%d %H:%M:%S') }}</span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Records Shown:</span>
+                        <span class="system-info-value">{{ rotations|length }}</span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Date Range:</span>
+                        <span class="system-info-value">
+                            {% if filters.date_from and filters.date_to %}
+                                {{ filters.date_from }} to {{ filters.date_to }}
+                            {% else %}
+                                All dates
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

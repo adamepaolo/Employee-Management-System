@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Pending User Approvals{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-user-clock me-2"></i>Pending User Approvals</h2>
+        <div>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-users me-1"></i>All Users
+            </a>
+            <a href="{{ url_for('pending_users') }}" class="btn btn-primary">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </a>
+        </div>
+    </div>
+
+    {% if users %}
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">{{ users|length }} Pending Approval(s)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr class="pending-card">
+                            <td>{{ user['id'] }}</td>
+                            <td>{{ user['username'] }}</td>
+                            <td>{{ user['full_name'] or 'N/A' }}</td>
+                            <td>{{ user['email'] }}</td>
+                            <td>{{ user['created_at'] }}</td>
+                            <td>
+                                <div class="d-flex">
+                                    <a href="{{ url_for('admin_approve_user', user_id=user['id']) }}" 
+                                       class="btn btn-sm btn-success me-2"
+                                       title="Approve">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </a>
+                                    <a href="{{ url_for('admin_delete_user', user_id=user['id']) }}" 
+                                       class="btn btn-sm btn-danger"
+                                       title="Reject"
+                                       onclick="return confirm('Are you sure you want to reject this user?')">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No pending user approvals at this time.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

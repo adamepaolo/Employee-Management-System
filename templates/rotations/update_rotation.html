@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Update Rotation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .update-rotation-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .update-rotation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .update-rotation-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .update-rotation-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .update-rotation-card-header {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    
+    .update-rotation-card-body {
+        padding: 1.5rem;
+    }
+    
+    .rotation-form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .day-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .day-selector .form-check {
+        margin-right: 15px;
+        margin-bottom: 5px;
+    }
+
+    .day-selector .form-check-input {
+        margin-right: 5px;
+    }
+
+    /* Status Styles */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-working {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-vacation {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
+    .status-training {
+        background-color: #cce5ff;
+        color: #004085;
+        border: 1px solid #b8daff;
+    }
+
+    .status-medical {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .status-emergency {
+        background-color: #ffcccc;
+        color: #cc0000;
+        border: 1px solid #ff9999;
+        font-weight: bold;
+    }
+
+    /* System info styles */
+    .system-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-column {
+        width: 48%;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0.25rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .system-info-value {
+        color: #6c757d;
+    }
+	
+	/* Enhanced system info styles */
+    .system-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-column {
+        width: 48%;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0.25rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 120px;
+    }
+    
+    .system-info-value {
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .user-info i {
+        margin-right: 5px;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="update-rotation-container">
+    <div class="update-rotation-header">
+        <h2 class="update-rotation-title">
+            Update Rotation for {{ rotation['employee_name'] }}
+        </h2>
+        <a href="{{ url_for('manage_rotations') }}" class="rotation-btn rotation-btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Rotations
+        </a>
+    </div>
+    
+    <div class="update-rotation-card">
+        <div class="update-rotation-card-header">
+            <i class="fas fa-edit me-2"></i>Rotation Details
+        </div>
+        <div class="update-rotation-card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="employee_id" value="{{ rotation['employee_id'] }}">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ rotation['start_date'] }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="rotation_days">Rotation Days</label>
+                            <input type="number" class="form-control" id="rotation_days" name="rotation_days" 
+                                   min="1" value="{{ rotation['rotation_days'] }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="travel_to">Travel To</label>
+                            <input type="text" class="form-control" id="travel_to" name="travel_to" 
+                                   value="{{ rotation['travel_to'] }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="travel_from">Travel From</label>
+                            <input type="text" class="form-control" id="travel_from" name="travel_from" 
+                                   value="{{ rotation['travel_from'] }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Selector -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="rotation-form-group">
+                            <label for="status">Rotation Status</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="working" {% if rotation['status'] == 'working' %}selected{% endif %}>Working</option>
+                                <option value="vacation" {% if rotation['status'] == 'vacation' %}selected{% endif %}>Vacation</option>
+                                <option value="training" {% if rotation['status'] == 'training' %}selected{% endif %}>Training</option>
+                                <option value="medical" {% if rotation['status'] == 'medical' %}selected{% endif %}>Medical Leave</option>
+                                <option value="emergency" {% if rotation['status'] == 'emergency' %}selected{% endif %}>Emergency Leave</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rest Days Selector -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="rotation-form-group">
+                            <label>Rest Days (Select days employee doesn't work)</label>
+                            <div class="day-selector">
+                                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="rest_day_{{ day }}" 
+                                           name="rest_days" value="{{ day }}"
+                                           {% if day in current_rest_days %}checked{% endif %}>
+                                    <label class="form-check-label" for="rest_day_{{ day }}">{{ day }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced System Information Section -->
+    <div class="system-info">
+        <div class="system-info-column">
+            <div class="system-info-item">
+                <span class="system-info-label">
+                    <i class="fas fa-user-plus"></i> Created By:
+                </span>
+                <span class="system-info-value">
+                    {% if rotation.created_by_name %}
+                        <span class="user-info">
+                            <i class="fas fa-user"></i> {{ rotation.created_by_name }}
+                        </span>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            </div>
+            <div class="system-info-item">
+                <span class="system-info-label">
+                    <i class="far fa-calendar-plus"></i> Created At:
+                </span>
+                <span class="system-info-value">
+                    {% if rotation.created_at %}
+                        {{ rotation.created_at|datetimeformat }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="system-info-column">
+            <div class="system-info-item">
+                <span class="system-info-label">
+                    <i class="fas fa-user-edit"></i> Last Updated By:
+                </span>
+                <span class="system-info-value">
+                    {% if rotation.updated_by_name %}
+                        <span class="user-info">
+                            <i class="fas fa-user"></i> {{ rotation.updated_by_name }}
+                        </span>
+                    {% elif rotation.updated_by %}
+                        <span class="user-info">
+                            <i class="fas fa-user-shield"></i> User #{{ rotation.updated_by }}
+                        </span>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            </div>
+            <div class="system-info-item">
+                <span class="system-info-label">
+                    <i class="far fa-calendar-check"></i> Last Updated At:
+                </span>
+                <span class="system-info-value">
+                    {% if rotation.updated_at %}
+                        {{ rotation.updated_at|datetimeformat }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="rotation-btn rotation-btn-primary">
+                        <i class="fas fa-save me-1"></i> Update Rotation
+                    </button>
+                    
+                    <a href="{{ url_for('manage_rotations') }}" class="rotation-btn rotation-btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

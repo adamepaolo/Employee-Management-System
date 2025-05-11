@@ -1,0 +1,772 @@
+{% extends "base.html" %}
+
+{% block title %}Rotation Calendar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rotation-calendar-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+        display: flex;
+        gap: 2rem;
+    }
+    
+    .calendar-main {
+        flex: 3;
+    }
+    
+    .calendar-sidebar {
+        flex: 1;
+    }
+    
+    .rotation-calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .rotation-calendar-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .rotation-calendar-nav {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .rotation-calendar-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .rotation-calendar-filter {
+        padding: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    
+    .calendar {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .calendar-header {
+        display: flex;
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        font-weight: bold;
+        text-align: center;
+        color: white;
+    }
+    
+    .calendar-day-header {
+        flex: 1;
+        padding: 0.75rem;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .calendar-day-header:last-child {
+        border-right: none;
+    }
+    
+    .calendar-week {
+        display: flex;
+        min-height: 150px;
+    }
+    
+    .calendar-day {
+        flex: 1;
+        padding: 0.5rem;
+        border-right: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        position: relative;
+    }
+    
+    .calendar-day.empty {
+        background-color: #f8f9fa;
+    }
+    
+    .calendar-day:last-child {
+        border-right: none;
+    }
+    
+    .calendar-today {
+        background-color: rgba(155, 89, 182, 0.1);
+    }
+    
+    .calendar-date {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        text-align: right;
+    }
+    
+    .calendar-events {
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    .calendar-event-link {
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .calendar-event {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    
+    .calendar-event:hover {
+        background-color: #e9ecef;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .event-start {
+        border-left: 4px solid #2ecc71;
+    }
+    
+    .event-end {
+        border-left: 4px solid #e74c3c;
+    }
+    
+    .employee-photo-thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        margin-right: 0.75rem;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .employee-initials {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .event-details {
+        flex: 1;
+    }
+    
+    .event-details strong {
+        display: block;
+        margin-bottom: 0.1rem;
+        color: #2c3e50;
+    }
+    
+    .event-details span {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    /* Sidebar styles */
+    .sidebar-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .sidebar-header {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 1rem 1.25rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .sidebar-body {
+        padding: 1.25rem;
+    }
+    
+    .employee-summary-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .employee-summary-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .employee-summary-photo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        object-fit: cover;
+    }
+    
+    .employee-summary-info {
+        flex: 1;
+    }
+    
+    .employee-summary-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .employee-summary-rotation {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .employee-summary-count {
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .rotation-back-btn {
+        margin-top: 1.5rem;
+    }
+    
+    /* System info styles */
+    .system-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-size: 0.8rem;
+    }
+    
+    .system-info-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .system-info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .system-info-value {
+        color: #6c757d;
+    }
+    
+    /* Calendar View Toggle */
+    .calendar-view-toggle {
+        margin-bottom: 1rem;
+    }
+    
+    .calendar-view-toggle .btn-group {
+        display: flex;
+    }
+    
+    .calendar-view-toggle .btn {
+        flex: 1;
+    }
+    
+    /* Week View Styles */
+    .calendar-week-view {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .calendar-week-header {
+        display: flex;
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        font-weight: bold;
+    }
+    
+    .calendar-week-day-header {
+        flex: 1;
+        padding: 0.75rem;
+        text-align: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .calendar-week-day-header:last-child {
+        border-right: none;
+    }
+    
+    .calendar-week-grid {
+        display: flex;
+        min-height: 300px;
+    }
+    
+    .calendar-week-day {
+        flex: 1;
+        padding: 0.5rem;
+        border-right: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .calendar-week-day:last-child {
+        border-right: none;
+    }
+    
+    .calendar-week-day.today {
+        background-color: rgba(155, 89, 182, 0.1);
+    }
+    
+    /* Day View Styles */
+    .calendar-day-view {
+        padding: 1rem;
+    }
+    
+    .calendar-day-header {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: 1rem;
+    }
+    
+    .calendar-day-events {
+        min-height: 300px;
+    }
+    
+    .calendar-day-event {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #9b59b6;
+    }
+    
+    @media (max-width: 992px) {
+        .rotation-calendar-container {
+            flex-direction: column;
+        }
+        
+        .calendar-main, .calendar-sidebar {
+            flex: none;
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .calendar-day {
+            min-height: 100px;
+        }
+        
+        .calendar-event {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .employee-photo-thumb,
+        .employee-initials {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .calendar-week-grid {
+            flex-direction: column;
+            min-height: auto;
+        }
+        
+        .calendar-week-day {
+            min-height: 150px;
+            border-bottom: 1px solid #dee2e6;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rotation-calendar-container">
+    <div class="calendar-main">
+        <div class="rotation-calendar-header">
+            <h2 class="rotation-calendar-title">
+                <i class="fas fa-calendar-alt mr-2"></i>
+                Rotation Calendar - 
+                {% if current_view == 'month' %}
+                    {{ current_date.strftime('%B %Y') }}
+                {% elif current_view == 'week' %}
+                    Week of {{ week_data.start_date.strftime('%b %d') }} - {{ week_data.end_date.strftime('%b %d, %Y') }}
+                {% else %}
+                    {{ day_data.date.strftime('%A, %B %d, %Y') }}
+                {% endif %}
+            </h2>
+            <div class="rotation-calendar-nav">
+                <a href="{{ url_for('rotation_calendar', year=prev_year, month=prev_month, day=prev_day, view=current_view, employee_filter=employee_filter) }}" 
+                   class="btn btn-outline-primary">
+                    <i class="fas fa-chevron-left mr-2"></i> Previous
+                </a>
+                <a href="{{ url_for('rotation_calendar', view=current_view, employee_filter=employee_filter) }}" 
+                   class="btn btn-outline-secondary mx-2">
+                    Today
+                </a>
+                <a href="{{ url_for('rotation_calendar', year=next_year, month=next_month, day=next_day, view=current_view, employee_filter=employee_filter) }}" 
+                   class="btn btn-outline-primary">
+                    Next <i class="fas fa-chevron-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Calendar View Toggle -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('rotation_calendar', year=current_date.year, month=current_date.month, day=current_date.day, view='month', employee_filter=employee_filter) }}" 
+                           class="btn btn-outline-secondary {% if current_view == 'month' %}active{% endif %}">
+                            Month
+                        </a>
+                        <a href="{{ url_for('rotation_calendar', year=current_date.year, month=current_date.month, day=current_date.day, view='week', employee_filter=employee_filter) }}" 
+                           class="btn btn-outline-secondary {% if current_view == 'week' %}active{% endif %}">
+                            Week
+                        </a>
+                        <a href="{{ url_for('rotation_calendar', year=current_date.year, month=current_date.month, day=current_date.day, view='day', employee_filter=employee_filter) }}" 
+                           class="btn btn-outline-secondary {% if current_view == 'day' %}active{% endif %}">
+                            Day
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="rotation-calendar-filter">
+            <form method="GET" class="form-inline">
+                <div class="d-flex flex-wrap align-items-center">
+                    <div class="rotation-filter-group">
+                        <label for="employee_filter" class="me-2">Filter by Employee:</label>
+                        <select class="form-control" id="employee_filter" name="employee_filter" onchange="this.form.submit()">
+                            <option value="">All Employees</option>
+                            {% for employee in employees %}
+                                <option value="{{ employee['EmployeeId'] }}" 
+                                    {% if employee['EmployeeId'] == employee_filter %}selected{% endif %}>
+                                    {{ employee['DisplayName'] }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="view" value="{{ current_view }}">
+                    <input type="hidden" name="year" value="{{ current_date.year }}">
+                    <input type="hidden" name="month" value="{{ current_date.month }}">
+                    <input type="hidden" name="day" value="{{ current_date.day }}">
+                    <a href="{{ url_for('rotation_calendar', year=current_date.year, month=current_date.month, day=current_date.day, view=current_view) }}" 
+                       class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-redo me-1"></i> Clear Filter
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="rotation-calendar-card">
+            {% if current_view == 'month' %}
+                <!-- Month View -->
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                    </div>
+                    
+                    {% for week in month_weeks %}
+                    <div class="calendar-week">
+                        {% for day in week %}
+                            {% if day %}
+                            <div class="calendar-day {% if day.is_today %}calendar-today{% endif %}">
+                                <div class="calendar-date">{{ day.day }}</div>
+                                <div class="calendar-events">
+                                    {% for event in day.events %}
+                                    <a href="{{ url_for('update_rotation', rotation_id=event.rotation_id) }}" 
+                                       class="calendar-event-link">
+                                        <div class="calendar-event {% if event.is_start %}event-start{% elif event.is_end %}event-end{% endif %}">
+                                            {% if event.employee_photo %}
+                                            <img src="{{ url_for('static', filename=event.employee_photo) }}" 
+                                                 class="employee-photo-thumb" 
+                                                 alt="{{ event.employee_name }}"
+                                                 title="{{ event.employee_name }}">
+                                            {% else %}
+                                            <span class="employee-initials">{{ event.employee_name|initials }}</span>
+                                            {% endif %}
+                                            <div class="event-details">
+                                                <strong>{{ event.employee_name }}</strong>
+                                                {% if event.is_start %}
+                                                <span>Start: {{ event.travel_to }}</span>
+                                                {% elif event.is_end %}
+                                                <span>End: {{ event.travel_from }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="calendar-day empty"></div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            
+            {% elif current_view == 'week' %}
+                <!-- Week View -->
+                <div class="calendar-week-view">
+                    <div class="calendar-week-header">
+                        {% for day in week_data.days %}
+                        <div class="calendar-week-day-header {% if day.is_today %}calendar-today{% endif %}">
+                            <div>{{ day.day_name[:3] }}</div>
+                            <div>{{ day.day }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="calendar-week-grid">
+                        {% for day in week_data.days %}
+                        <div class="calendar-week-day {% if day.is_today %}calendar-today{% endif %}">
+                            <div class="calendar-events">
+                                {% for event in day.events %}
+                                <a href="{{ url_for('update_rotation', rotation_id=event.rotation_id) }}" 
+                                   class="calendar-event-link">
+                                    <div class="calendar-event {% if event.is_start %}event-start{% elif event.is_end %}event-end{% endif %}">
+                                        {% if event.employee_photo %}
+                                        <img src="{{ url_for('static', filename=event.employee_photo) }}" 
+                                             class="employee-photo-thumb" 
+                                             alt="{{ event.employee_name }}"
+                                             title="{{ event.employee_name }}">
+                                        {% else %}
+                                        <span class="employee-initials">{{ event.employee_name|initials }}</span>
+                                        {% endif %}
+                                        <div class="event-details">
+                                            <strong>{{ event.employee_name }}</strong>
+                                            {% if event.is_start %}
+                                            <span>Start: {{ event.travel_to }}</span>
+                                            {% elif event.is_end %}
+                                            <span>End: {{ event.travel_from }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            
+            {% else %}
+                <!-- Day View -->
+                <div class="calendar-day-view">
+                    <div class="calendar-day-header">
+                        <h4>
+                            {{ day_data.day_name }}, {{ day_data.date.strftime('%B %d, %Y') }}
+                            {% if day_data.is_today %}
+                            <span class="badge bg-primary">Today</span>
+                            {% endif %}
+                        </h4>
+                    </div>
+                    
+                    <div class="calendar-day-events">
+                        {% if day_data.events %}
+                            {% for event in day_data.events %}
+                            <a href="{{ url_for('update_rotation', rotation_id=event.rotation_id) }}" 
+                               class="calendar-event-link">
+                                <div class="calendar-day-event {% if event.is_start %}event-start{% elif event.is_end %}event-end{% endif %}">
+                                    <div class="d-flex align-items-center">
+                                        {% if event.employee_photo %}
+                                        <img src="{{ url_for('static', filename=event.employee_photo) }}" 
+                                             class="employee-photo-thumb me-3" 
+                                             alt="{{ event.employee_name }}"
+                                             title="{{ event.employee_name }}">
+                                        {% else %}
+                                        <span class="employee-initials me-3">{{ event.employee_name|initials }}</span>
+                                        {% endif %}
+                                        <div>
+                                            <h5 class="mb-1">{{ event.employee_name }}</h5>
+                                            {% if event.is_start %}
+                                            <p class="mb-0">Start rotation to: {{ event.travel_to }}</p>
+                                            {% elif event.is_end %}
+                                            <p class="mb-0">End rotation from: {{ event.travel_from }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                                <h5>No rotations scheduled for this day</h5>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="rotation-back-btn">
+            <a href="{{ url_for('manage_rotations') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Rotations
+            </a>
+        </div>
+    </div>
+    
+    <div class="calendar-sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-header">
+                <i class="fas fa-users me-2"></i>Employees in Rotation
+            </div>
+            <div class="sidebar-body">
+                {% if unique_employees %}
+                    <p class="text-muted mb-3">{{ unique_employees|length }} employee(s) have rotations this period</p>
+                    
+                    {% for emp_id, emp_data in unique_employees.items() %}
+                    <div class="employee-summary-item">
+                        {% if emp_data.photo %}
+                        <img src="{{ url_for('static', filename=emp_data.photo) }}" 
+                             class="employee-summary-photo" 
+                             alt="{{ emp_data.name }}"
+                             title="{{ emp_data.name }}">
+                        {% else %}
+                        <span class="employee-initials">{{ emp_data.name|initials }}</span>
+                        {% endif %}
+                        
+                        <div class="employee-summary-info">
+                            <div class="employee-summary-name">{{ emp_data.name }}</div>
+                            <div class="employee-summary-rotation">
+                                {% for rotation in emp_data.rotations %}
+                                <div>
+                                    {{ rotation.start_date }} to {{ rotation.end_date }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="employee-summary-count">
+                            {{ emp_data.rotations|length }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No employees in rotation this period</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="sidebar-card">
+            <div class="sidebar-header">
+                <i class="fas fa-info-circle me-2"></i>Quick Stats
+            </div>
+            <div class="sidebar-body">
+                <div class="mb-3">
+                    <div class="text-muted">Total Rotations</div>
+                    <div class="h4">{{ rotations|length }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="text-muted">Unique Locations</div>
+                    <div class="h4">
+                        {% set ns = namespace(locations=[]) %}
+                        {% for rotation in rotations %}
+                            {% if rotation.travel_to not in ns.locations %}
+                                {% set ns.locations = ns.locations + [rotation.travel_to] %}
+                            {% endif %}
+                            {% if rotation.travel_from not in ns.locations %}
+                                {% set ns.locations = ns.locations + [rotation.travel_from] %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ ns.locations|length }}
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="text-muted">Avg. Duration</div>
+                    <div class="h4">
+                        {% if rotations %}
+                            {{ (rotations|sum(attribute='rotation_days') / rotations|length)|round(1) }} days
+                        {% else %}
+                            0 days
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- System info styles 
+                <div class="system-info mt-3">
+                    <div class="system-info-item">
+                        <span class="system-info-label">Created By:</span>
+                        <span class="system-info-value">
+                            {% if rotations and rotations[0].created_by %}
+                                {{ rotations[0].created_by_name or rotations[0].created_by }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Created At:</span>
+                        <span class="system-info-value">
+                            {% if rotations and rotations[0].created_at %}
+                                {{ rotations[0].created_at|datetimeformat }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Updated By:</span>
+                        <span class="system-info-value">
+                            {% if rotations and rotations[0].updated_by %}
+                                {{ rotations[0].updated_by_name or rotations[0].updated_by }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="system-info-item">
+                        <span class="system-info-label">Updated At:</span>
+                        <span class="system-info-value">
+                            {% if rotations and rotations[0].updated_at %}
+                                {{ rotations[0].updated_at|datetimeformat }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>-->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
