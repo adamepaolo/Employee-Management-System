@@ -15,6 +15,6 @@ A simple **Employee Management System** built with **Python** and **HTML templat
 3️⃣ Run: `python Employee_Management_System.py`  
 4️⃣ Open: `http://localhost:5000`  
 
-**Contribute:** Improve UI/UX, add authentication, implement search/filter, or upgrade database. Pull Requests welcome!  
+**Contribute:** Improve UI/UX, add authentication, implement search/filter, or upgrade database. 
 
 **License:** MIT
